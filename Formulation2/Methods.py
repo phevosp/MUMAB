@@ -167,7 +167,7 @@ def optimal_distribution(arm_list, theoretical = False):
 
     return store_values, m.getObjective().getValue()
 
-def episode(curr_time):
+def episode(curr_time, type):
     """
         Runs one episode of the algorithm. 
         Each agent moves to assigned destination node (one to each of the M arms with highest UCB).
@@ -190,10 +190,17 @@ def episode(curr_time):
     # print("Distribution:", distribution)
     # print("Sampled Nodes:", sampled_nodes)
 
-    # Note number of pulls of arm with minimum number of pulls
-    arm_with_min_pulls = sorted(sampled_nodes, key = lambda x : G.nodes[x]['arm'].num_pulls)[0]
-    min_pulls = G.nodes[arm_with_min_pulls]['arm'].num_pulls
-    # f.write("Arm with min pulls: {}\n".format(arm_with_min_pulls))
+    # Note number of pulls of baseline
+    sorted_by_pulls = sorted(sampled_nodes, key = lambda x : G.nodes[x]['arm'].num_pulls)
+    if type == 'original':
+        baseline_arm = sorted_by_pulls[0]
+    elif type == 'median':
+        baseline_arm = sorted_by_pulls[len(sampled_nodes) // 2]
+    elif type == 'max':
+        baseline_arm = sorted_by_pulls[-1]
+
+    baseline_pulls = G.nodes[baseline_arm]['arm'].num_pulls
+    # f.write("Baseline Arm: {}\n".format(baseline_arm))
 
     # Note maximum ucb value for edge
     max_ucb = max([G.nodes[node]['arm'].ucb for node in sampled_nodes])
@@ -268,9 +275,9 @@ def episode(curr_time):
         else:
             arm_dict[agent.current_node['arm']] += 1
 
-    # We sample until num_pulls of arm_with_min_pulls doubles
-    assert(G.nodes[arm_with_min_pulls]['arm'] in arm_dict)
-    while G.nodes[arm_with_min_pulls]['arm'].num_pulls < 2 * min_pulls and curr_time < T:
+    # We sample until num_pulls of baseline_arm doubles
+    assert(G.nodes[baseline_arm]['arm'] in arm_dict)
+    while G.nodes[baseline_arm]['arm'].num_pulls < 2 * baseline_pulls and curr_time < T:
         curr_time += 1
         rew_per_turn.append(0)
         for arm in arm_dict:
@@ -284,16 +291,16 @@ def episode(curr_time):
     Executable Code
 --------------------------------------------------------------------------------------------------------------------------------------- 
 """
-cumulative_regrets = []
+cumulative_regrets = {}
 # Note that variations in the results come from an unstable maximum weight matching algorithm in the 'episode' function
 
 # Problem Parameters
 # T = 15000
-T = 500
 # K = 500
-K = 50
 # M = 10
-M = 3
+T = 1500
+K = 100
+M = 5
 p = 0.05
 num_trials = 10
 
@@ -320,84 +327,90 @@ plt.clf()
 nx.draw(G, with_labels = True)
 plt.savefig("state_graph.png")
 
+# Get theoretical max_per_turn
+_, max_per_turn = optimal_distribution([G.nodes[node]['arm'] for node in G.nodes()], theoretical = True)
+
 for trial in range(num_trials):
     # Initialize output file and results directory
     if not os.path.exists("trial_" + str(trial)):
         os.makedirs("trial_" + str(trial))
-
-    f = open("trial_" + str(trial) + "/{}.txt".format(sys.argv[1]), "w")
-
-    # Reset arms
-    for i in G:
-        G.nodes[i]['arm'].reset()
     
-    # Initialize agents and assign vertex
-    agents   = [Agent(i, G.nodes[random.randint(0, K-1)]) for i in range(M)]
+    # For each type of algorithm, run it
+    for type in ['original', 'median', 'max']:
+        # Open results file
+        f = open("trial_" + str(trial) + "/{}-{}.txt".format(type, sys.argv[1]), "w")
 
-    # Begin Algorithm
-    # After the return from each function call, 
-    # curr_time is the last time step that was run
-    # And each agent has yet to sample from their current vertex
-    curr_time = 0
-    curr_ep   = 0
-    curr_time, reward_per_turn = initialize()
+        # Reset arms
+        for i in G:
+            G.nodes[i]['arm'].reset()
+        
+        # Initialize agents and assign vertex
+        agents   = [Agent(i, G.nodes[random.randint(0, K-1)]) for i in range(M)]
 
-    while curr_time < T:
-        curr_ep   += 1
-        print("Episode {}".format(curr_ep))
-        # f.write("Starting Episode {}, Current time is {}\n".format(curr_ep, curr_time))
-        curr_time, new_rewards = episode(curr_time)
-        reward_per_turn += new_rewards
+        # Begin Algorithm
+        # After the return from each function call, 
+        # curr_time is the last time step that was run
+        # And each agent has yet to sample from their current vertex
+        curr_time = 0
+        curr_ep   = 0
+        curr_time, reward_per_turn = initialize()
 
-    # Get results
-    net_reward = 0
-    for node in G.nodes():
-        arm = G.nodes[node]['arm']
-        f.write('\nArm ' + str(arm.id))
-        f.write("\nTrue Mean: " + str(arm.true_mean))
-        f.write("\nEstimated Mean: " +  str(arm.estimated_mean))
-        f.write("\nUCB Value: " + str(arm.ucb))
-        f.write("\nNum Pulls: " + str(arm.num_pulls))
-        net_reward += arm.total_reward
+        while curr_time < T:
+            curr_ep   += 1
+            print("Episode {}".format(curr_ep))
+            # f.write("Starting Episode {}, Current time is {}\n".format(curr_ep, curr_time))
+            curr_time, new_rewards = episode(curr_time, type)
+            reward_per_turn += new_rewards
 
-    print('Total Time: ' + str(curr_time))
-    f.write('\n----------------------------------------------------\n')
-    f.write('Total Time: ' + str(curr_time))
-    f.write("\nNet Reward: " + str(net_reward))
-    f.write("\nTheoretical Expected Max: " + str(T * max_per_turn))
-    f.write("\n")
-    f.close()
+        # Get results
+        net_reward = 0
+        for node in G.nodes():
+            arm = G.nodes[node]['arm']
+            f.write('\nArm ' + str(arm.id))
+            f.write("\nTrue Mean: " + str(arm.true_mean))
+            f.write("\nEstimated Mean: " +  str(arm.estimated_mean))
+            f.write("\nUCB Value: " + str(arm.ucb))
+            f.write("\nNum Pulls: " + str(arm.num_pulls))
+            net_reward += arm.total_reward
 
-    _, max_per_turn = optimal_distribution([G.nodes[node]['arm'] for node in G.nodes()], theoretical = True)
-    cum_regret = np.subtract([max_per_turn * i for i in range(1, T+1)], np.cumsum(reward_per_turn))
-    cumulative_regrets.append(cum_regret)
+        print('Total Time: ' + str(curr_time))
+        f.write('\n----------------------------------------------------\n')
+        f.write('Total Time: ' + str(curr_time))
+        f.write("\nNet Reward: " + str(net_reward))
+        f.write("\nTheoretical Expected Max: " + str(T * max_per_turn))
+        f.write("\n")
+        f.close()
 
-    # # Plot cumulative reward
-    assert(len(reward_per_turn) == curr_time == T)
-    plt.clf()
-    plt.plot(range(T), np.cumsum(reward_per_turn), label = 'Observed')
-    plt.plot(range(T), [max_per_turn * i for i in range(1, T+1)], label = 'Theoretical Max')
-    plt.xlabel("Time")
-    plt.ylabel("Cumulative Reward")
-    plt.title("Cumulative reward as a function of time")
-    plt.legend()
-    plt.savefig("trial_" + str(trial) + "/cumulative_reward.png")
+        # Calculate regret
+        cum_regret = np.subtract([max_per_turn * i for i in range(1, T+1)], np.cumsum(reward_per_turn))
+        cumulative_regrets.append(cum_regret)
 
-    # # Plot Cumulative Regret
-    plt.clf()
-    plt.plot(range(T), np.subtract([max_per_turn * i for i in range(1, T+1)], np.cumsum(reward_per_turn)))
-    plt.xlabel("Time")
-    plt.ylabel("Cumulative Regret")
-    plt.title("Cumulative regret as a function of time")
-    plt.savefig("trial_" + str(trial) + "/cumulative_regret.png")
+        # # Plot cumulative reward
+        assert(len(reward_per_turn) == curr_time == T)
+        plt.clf()
+        plt.plot(range(T), np.cumsum(reward_per_turn), label = 'Observed')
+        plt.plot(range(T), [max_per_turn * i for i in range(1, T+1)], label = 'Theoretical Max')
+        plt.xlabel("Time")
+        plt.ylabel("Cumulative Reward")
+        plt.title("Cumulative reward as a function of time")
+        plt.legend()
+        plt.savefig("trial_" + str(trial) + "/{}-cumulative_reward.png".format(type))
 
-    # # Plot Average Regret
-    plt.clf()
-    plt.plot(range(T), np.divide(np.subtract([max_per_turn * i for i in range(1, T+1)], np.cumsum(reward_per_turn)), range(1, T+1)))
-    plt.xlabel("Time")
-    plt.ylabel("Average Regret")
-    plt.title("Average regret as a function of time")
-    plt.savefig("trial_" + str(trial) + "/av_regret.png")
+        # # Plot Cumulative Regret
+        plt.clf()
+        plt.plot(range(T), np.subtract([max_per_turn * i for i in range(1, T+1)], np.cumsum(reward_per_turn)))
+        plt.xlabel("Time")
+        plt.ylabel("Cumulative Regret")
+        plt.title("Cumulative regret as a function of time")
+        plt.savefig("trial_" + str(trial) + "/{}-cumulative_regret.png".format(type))
+
+        # # Plot Average Regret
+        plt.clf()
+        plt.plot(range(T), np.divide(np.subtract([max_per_turn * i for i in range(1, T+1)], np.cumsum(reward_per_turn)), range(1, T+1)))
+        plt.xlabel("Time")
+        plt.ylabel("Average Regret")
+        plt.title("Average regret as a function of time")
+        plt.savefig("trial_" + str(trial) + "/{}-av_regret.png".format(type))
 
 
 # # Plot Cumulative Regret Averaged over Trials
