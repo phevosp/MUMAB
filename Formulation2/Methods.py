@@ -6,6 +6,7 @@ import networkx as nx
 from networkx import bipartite
 import sys
 import os
+import json
 import time
 import gurobipy as gp
 
@@ -276,7 +277,9 @@ def episode(curr_time, type):
             arm_dict[agent.current_node['arm']] += 1
 
     # We sample until num_pulls of baseline_arm doubles
-    assert(G.nodes[baseline_arm]['arm'] in arm_dict)
+    if G.nodes[baseline_arm]['arm'] not in arm_dict:
+        assert(curr_time == T)
+
     while G.nodes[baseline_arm]['arm'].num_pulls < 2 * baseline_pulls and curr_time < T:
         curr_time += 1
         rew_per_turn.append(0)
@@ -292,17 +295,19 @@ def episode(curr_time, type):
 --------------------------------------------------------------------------------------------------------------------------------------- 
 """
 cumulative_regrets = {}
+# type_list = ['original', 'median', 'max']
+type_list = ['max']
 # Note that variations in the results come from an unstable maximum weight matching algorithm in the 'episode' function
 
 # Problem Parameters
 # T = 15000
 # K = 500
 # M = 10
-T = 1500
+T = 150
 K = 100
 M = 5
 p = 0.05
-num_trials = 10
+num_trials = 2
 
 # Create Stochastic Setting
 #---------------------------------------------------#
@@ -330,15 +335,18 @@ plt.savefig("state_graph.png")
 # Get theoretical max_per_turn
 _, max_per_turn = optimal_distribution([G.nodes[node]['arm'] for node in G.nodes()], theoretical = True)
 
-for trial in range(num_trials):
-    # Initialize output file and results directory
-    if not os.path.exists("trial_" + str(trial)):
-        os.makedirs("trial_" + str(trial))
-    
-    # For each type of algorithm, run it
-    for type in ['original', 'median', 'max']:
+for type in type_list:
+    if not os.path.exists(type):
+        os.makedirs(type)
+
+    cumulative_regrets[type] = []
+    for trial in range(num_trials):
+        # Initialize output file and results directory
+        if not os.path.exists(type + "/trial_" + str(trial)):
+            os.makedirs(type + "/trial_" + str(trial))
+        
         # Open results file
-        f = open("trial_" + str(trial) + "/{}-{}.txt".format(type, sys.argv[1]), "w")
+        f = open(type + "/trial_" + str(trial) + "/{}.txt".format(sys.argv[1]), "w")
 
         # Reset arms
         for i in G:
@@ -383,7 +391,7 @@ for trial in range(num_trials):
 
         # Calculate regret
         cum_regret = np.subtract([max_per_turn * i for i in range(1, T+1)], np.cumsum(reward_per_turn))
-        cumulative_regrets.append(cum_regret)
+        cumulative_regrets[type].append(cum_regret)
 
         # # Plot cumulative reward
         assert(len(reward_per_turn) == curr_time == T)
@@ -394,7 +402,7 @@ for trial in range(num_trials):
         plt.ylabel("Cumulative Reward")
         plt.title("Cumulative reward as a function of time")
         plt.legend()
-        plt.savefig("trial_" + str(trial) + "/{}-cumulative_reward.png".format(type))
+        plt.savefig(type + "/trial_" + str(trial) + "/cumulative_reward.png")
 
         # # Plot Cumulative Regret
         plt.clf()
@@ -402,7 +410,7 @@ for trial in range(num_trials):
         plt.xlabel("Time")
         plt.ylabel("Cumulative Regret")
         plt.title("Cumulative regret as a function of time")
-        plt.savefig("trial_" + str(trial) + "/{}-cumulative_regret.png".format(type))
+        plt.savefig(type + "/trial_" + str(trial) + "/cumulative_regret.png")
 
         # # Plot Average Regret
         plt.clf()
@@ -410,34 +418,60 @@ for trial in range(num_trials):
         plt.xlabel("Time")
         plt.ylabel("Average Regret")
         plt.title("Average regret as a function of time")
-        plt.savefig("trial_" + str(trial) + "/{}-av_regret.png".format(type))
+        plt.savefig(type + "/trial_" + str(trial) + "/av_regret.png")
 
 
-# # Plot Cumulative Regret Averaged over Trials
-av_cum_regret = np.mean(cumulative_regrets, axis = 0)
+    # # Plot Cumulative Regret Averaged over Trials
+    av_cum_regret = np.mean(cumulative_regrets[type], axis = 0)
 
+    plt.clf()
+    for i in range(num_trials):
+        plt.plot(range(T), cumulative_regrets[type][i], alpha = 0.4, color= 'grey')
+
+    plt.plot(range(T), av_cum_regret, alpha = 0.7, color='orange')
+    plt.xlabel("Time")
+    plt.ylabel("Cumulative Regret")
+    plt.title("Cumulative regret as a function of time")
+    plt.savefig(type + "/av_cumulative_regret.png")
+
+    # # Plot Average Regret Averaged over Trials
+    plt.clf()
+    for i in range(num_trials):
+        plt.plot(range(T), np.divide(cumulative_regrets[type][i], range(1, T+1)), alpha = 0.4, color= 'grey')
+
+    plt.plot(range(T), np.divide(av_cum_regret, range(1, T+1)), alpha = 0.7, color='orange')
+    plt.xlabel("Time")
+    plt.ylabel("Average Regret")
+    plt.title("Average regret as a function of time")
+    plt.savefig(type + "/av_average_regret.png")
+
+    np.save(type + "/cumulative_regrets.npy", cumulative_regrets[type])
+
+
+# # Plot Mean Regret from different comparisons
 plt.clf()
-for i in range(num_trials):
-    plt.plot(range(T), cumulative_regrets[i], alpha = 0.4, color= 'grey')
+palette = sns.color_palette()
+num = 0
+for type in type_list:
+    plt.plot(range(T), np.mean(cumulative_regrets[type], axis = 0), alpha = 0.9, color= palette[num], label = type)
+    num += 1
 
-plt.plot(range(T), av_cum_regret, alpha = 0.7, color='orange')
 plt.xlabel("Time")
 plt.ylabel("Cumulative Regret")
+plt.legend()
 plt.title("Cumulative regret as a function of time")
-plt.savefig("av_cumulative_regret.png")
+plt.savefig("av_cumulative_regret_comparison.png")
 
 # # Plot Average Regret Averaged over Trials
 plt.clf()
-for i in range(num_trials):
-    plt.plot(range(T), np.divide(cumulative_regrets[i], range(1, T+1)), alpha = 0.4, color= 'grey')
-
-plt.plot(range(T), np.divide(av_cum_regret, range(1, T+1)), alpha = 0.7, color='orange')
+num = 0
+for type in type_list:
+    plt.plot(range(T), np.divide(np.mean(cumulative_regrets[type], axis = 0), range(1, T+1)), alpha = 0.9, color=palette[num], label = type)
 plt.xlabel("Time")
 plt.ylabel("Average Regret")
+plt.legend()
 plt.title("Average regret as a function of time")
-plt.savefig("av_average_regret.png")
-
-
+plt.savefig("av_average_regret_comparison.png")
 
  
 # Compare to:
