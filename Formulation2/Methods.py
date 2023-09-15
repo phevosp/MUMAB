@@ -90,16 +90,16 @@ class Arm_indv:
     def get_reward(self):
         return np.random.normal(loc = self.true_mean, scale = 0.06)
     
-    def pull(self, time, agents):
+    def pull(self, time, agents, agent_ids):
         # print("Sampling Arm {} at time {}\n".format(self.id, time))
         single_reward = self.get_reward()
-        reward = self.function(len(agents)) * single_reward
-        for agent in agents:
-            agent.num_pulls_dict[self.id] += 1
-            agent.total_reward_dict[self.id] += single_reward
-            agent.estimated_mean_dict[self.id] = agent.total_reward_dict[self.id] / agent.num_pulls_dict[self.id]
-            agent.conf_radius_dict[self.id] = np.sqrt(2 * np.log(time) / agent.num_pulls_dict[self.id])
-            agent.ucb_dict[self.id] = agent.estimated_mean_dict[self.id] + agent.conf_radius_dict[self.id]
+        reward = self.function(len(agent_ids)) * single_reward
+        for a_id in agent_ids:
+            agents[a_id].num_pulls_dict[self.id] += 1
+            agents[a_id].total_reward_dict[self.id] += single_reward
+            agents[a_id].estimated_mean_dict[self.id] = agents[a_id].total_reward_dict[self.id] / agents[a_id].num_pulls_dict[self.id]
+            agents[a_id].conf_radius_dict[self.id] = np.sqrt(2 * np.log(time) / agents[a_id].num_pulls_dict[self.id])
+            agents[a_id].ucb_dict[self.id] = agents[a_id].estimated_mean_dict[self.id] + agents[a_id].conf_radius_dict[self.id]
 
         # print("Single Reward: {}\n".format(single_reward))
         return reward
@@ -143,8 +143,8 @@ class Agent_indv:
         # Agent attributes
         self.id           :int  = id
         self.current_node :dict = node
-        self.num_pulls_dict      = {}
-        self.total_reward_dict   = {}
+        self.num_pulls_dict      = {i: 0 for i in G}
+        self.total_reward_dict   = {i: 0 for i in G}
         self.estimated_mean_dict = {}
         self.conf_radius_dict    = {}
         self.ucb_dict            = {}
@@ -156,7 +156,7 @@ def initialize(agents):
     """
         Initializes the approximations for each vertex by having each agent run DFS until all the vertices are visited at least once.
     """
-    curr_time = 0
+    curr_time = 1
     # Keep track of reward per turn
     rew_per_turn = []
 
@@ -197,52 +197,86 @@ def initialize(agents):
         for arm in arm_dict:
             rew_per_turn[-1] += arm.pull(curr_time, arm_dict[arm])
 
+    # Sample current arms as well
+    curr_time + 1
+    for agent in agents:
+        # Add current vertex to arm_dict
+        if agent.current_node['arm'] not in arm_dict:
+            arm_dict[agent.current_node['arm']] = 1
+        else:
+            arm_dict[agent.current_node['arm']] += 1
+
+    rew_per_turn.append(0)
+    for arm in arm_dict:
+        rew_per_turn[-1] += arm.pull(curr_time, arm_dict[arm])
     return curr_time, rew_per_turn
 
 def initialize_indv(G, agents):
     """
-        Initializes the approximations for each vertex by having each agent run DFS until all the vertices are visited at least once.
+        Initializes the approximations for each vertex by having each agent run DFS until it has visited all the vertices.
     """
-    curr_time = 0
+    curr_time = 1
     # Keep track of reward per turn
     rew_per_turn = []
 
-    # Initialize list of visited nodes
-    visited    = [False for node in G]
+    # Initialize list of visited nodes for each agent
+    visited    = {agent.id:[False for node in G] for agent in agents}
     for agent in agents:
-        visited[agent.current_node['id']] = True
+        print(agent.id, agent.current_node['id'])
+        visited[agent.id][agent.current_node['id']] = True
 
-    while not all(visited):
-        print(sum(visited))
+    # Initialize list of previous nodes for each agent
+    prev_nodes = {agent.id:{} for agent in agents}
+
+    # While there is some agent that has not visited all nodes
+    while not all([sum(visited[agent.id]) == len(G) for agent in agents]):
         curr_time += 1
         # arm_dict will be the collection of arms that are visited at the current time
+        # arm_dict[arm] = list of agent.ids that are sampling the arm
         arm_dict = {}
         for agent in agents:
-            # Add current vertex to arm_dict
+            # Add current agent to arm_dict
             if agent.current_node['arm'] not in arm_dict:
-                arm_dict[agent.current_node['arm']] = 1
+                arm_dict[agent.current_node['arm']] = [agent.id]
             else:
-                arm_dict[agent.current_node['arm']] += 1
+                arm_dict[agent.current_node['arm']].append(agent.id)
 
             # Move to first neighbor that has not been visited
             moved = False
             for neighbor_id in nx.all_neighbors(G, agent.current_node['id']):
-                if not visited[neighbor_id]:
-                    G.nodes[neighbor_id]['prev_node'] = agent.current_node
+                if not visited[agent.id][neighbor_id]:
+                    prev_nodes[agent.id][neighbor_id] = agent.current_node['id']
                     agent.move(G.nodes[neighbor_id])
 
                     # Immediately mark as visited, though we haven't yet sampled reward
-                    visited[agent.current_node['id']] = True
+                    visited[agent.id][agent.current_node['id']] = True
                     moved                             = True
                     break
             
             # If we didn't move forward then move backwards
-            if not moved:    
-                agent.move(agent.current_node['prev_node'])
+            if not moved:  
+                prev_node_id = prev_nodes[agent.id][agent.current_node['id']]
+                agent.move(G.nodes[prev_node_id])
 
         rew_per_turn.append(0)
         for arm in arm_dict:
-            rew_per_turn[-1] += arm.pull(curr_time, arm_dict[arm])
+            rew_per_turn[-1] += arm.pull(curr_time, agents, arm_dict[arm])
+
+    
+    # Sample current arms as well
+    for agent in agents:
+        if agent.current_node['arm'] not in arm_dict:
+            arm_dict[agent.current_node['arm']] = [agent.id]
+        else:
+            arm_dict[agent.current_node['arm']].append(agent.id)
+
+    rew_per_turn.append(0)
+    for arm in arm_dict:
+        rew_per_turn[-1] += arm.pull(curr_time, agents, arm_dict[arm])
+
+    # Double check all vertices have been visited
+    for agent in agents:
+        assert(sorted(agent.estimated_mean_dict.keys()) == sorted(G.nodes()))
 
     return curr_time, rew_per_turn
 
@@ -378,15 +412,15 @@ def episode(agents, curr_time, type):
         # arm_dict will be the set of arms that are visited at the current time
         arm_dict = {}
         for agent in agents:
-            # Add current vertex to arm_dict
+            # If we have more path left, move to next node
+            if i < len(paths[agent.id]):
+                agent.move(G.nodes[paths[agent.id][i]])
+
+            # Then add current vertex to arm_dict
             if agent.current_node['arm'] not in arm_dict:
                 arm_dict[agent.current_node['arm']] = 1
             else:
                 arm_dict[agent.current_node['arm']] += 1
-
-            # If we have more path left, move to next node
-            if i < len(paths[agent.id]):
-                agent.move(G.nodes[paths[agent.id][i]])
 
         rew_per_turn.append(0)
         for arm in arm_dict:
@@ -439,15 +473,14 @@ def episode_indv(G, agents, curr_time):
             G_directed.edges[v, u]["weight"] = max_ucb - agent.ucb_dict[G.nodes[u]['arm'].id]
     
         # Compute single source shortest path and add to dictionary
-        shortest_path        = nx.shortest_path(G_directed, source = agent.current_node['id'], weight = "weight")
-        paths[agent.id]      = shortest_path
+        paths[agent.id]      = nx.shortest_path(G_directed, source = agent.current_node['id'], target = opt_arm, weight = "weight")
 
     # baseline_pulls gives the number of pulls of the arm with the least number of pulls by its respective agent
     # baseline_agent gives the agent who has pulled their respective arm the fewest number of times
     # baseline_arm gives the arm with the least number of pulls
     baseline_pulls = min([agent.num_pulls_dict[paths[agent.id][-1]] for agent in agents])
-    baseline_agent = [agent for agent in agents if agent.num_pulls[paths[agent.id][-1]] == baseline_pulls][0]
-    baseline_arm   = paths[baseline_agent][-1] 
+    baseline_agent = [agent for agent in agents if agent.num_pulls_dict[paths[agent.id][-1]] == baseline_pulls][0]
+    baseline_arm   = paths[baseline_agent.id][-1] 
 
     # f.write("Paths: {}\n".format(paths))
     # Move agents along paths, if agents have reached the end of their journey then they stay at desination node
@@ -461,9 +494,9 @@ def episode_indv(G, agents, curr_time):
         for agent in agents:
             # Add current vertex to arm_dict
             if agent.current_node['arm'] not in arm_dict:
-                arm_dict[agent.current_node['arm']] = 1
+                arm_dict[agent.current_node['arm']] = [agent.id]
             else:
-                arm_dict[agent.current_node['arm']] += 1
+                arm_dict[agent.current_node['arm']].append(agent.id)
 
             # If we have more path left, move to next node
             if i < len(paths[agent.id]):
@@ -471,16 +504,16 @@ def episode_indv(G, agents, curr_time):
 
         rew_per_turn.append(0)
         for arm in arm_dict:
-            rew_per_turn[-1] += arm.pull(curr_time, arm_dict[arm])
+            rew_per_turn[-1] += arm.pull(curr_time, agents, arm_dict[arm])
 
     # We update arm_dict
     arm_dict = {}
     for agent in agents:
         # Add current vertex to arm_dict
         if agent.current_node['arm'] not in arm_dict:
-            arm_dict[agent.current_node['arm']] = 1
+            arm_dict[agent.current_node['arm']] = [agent.id]
         else:
-            arm_dict[agent.current_node['arm']] += 1
+            arm_dict[agent.current_node['arm']].append(agent.id)
 
     # We sample until num_pulls of baseline_arm doubles
     if baseline_agent.current_node['id'] !=baseline_arm:
@@ -490,7 +523,7 @@ def episode_indv(G, agents, curr_time):
         curr_time += 1
         rew_per_turn.append(0)
         for arm in arm_dict:
-            rew_per_turn[-1] += arm.pull(curr_time, arm_dict[arm])
+            rew_per_turn[-1] += arm.pull(curr_time, agents, arm_dict[arm])
 
     return curr_time, rew_per_turn
 
@@ -508,13 +541,13 @@ def run(type):
     # And each agent has yet to sample from their current vertex
     curr_time = 0
     curr_ep   = 0
-    curr_time, reward_per_turn = initialize()
+    curr_time, reward_per_turn = initialize(agents)
 
     while curr_time < T:
         curr_ep   += 1
         print("Episode {}".format(curr_ep))
         # f.write("Starting Episode {}, Current time is {}\n".format(curr_ep, curr_time))
-        curr_time, new_rewards = episode(curr_time, type)
+        curr_time, new_rewards = episode(agents, curr_time, type)
         reward_per_turn += new_rewards
 
     # Get results
@@ -584,7 +617,7 @@ names     = ["G-combUCB", "G-combUCB-median", "G-combUCB-max", "Multi-G-UCB"]
 # T = 15000
 # K = 500
 # M = 10
-T = 150
+T = 500
 K = 100
 M = 5
 p = 0.05
