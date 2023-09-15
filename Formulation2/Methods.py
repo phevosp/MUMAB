@@ -614,14 +614,11 @@ type_list = ['original', 'median', 'max', "individual"]
 names     = ["G-combUCB", "G-combUCB-median", "G-combUCB-max", "Multi-G-UCB"]
 
 # Problem Parameters
-# T = 15000
-# K = 500
-# M = 10
-T = 500
-K = 100
-M = 5
+T = 15000
+K = 500
+M = 20
 p = 0.05
-num_trials = 2
+num_trials = 10
 
 # Create Stochastic Setting
 #---------------------------------------------------#
@@ -757,7 +754,3 @@ plt.ylabel("Average Regret")
 plt.legend()
 plt.title("Average regret as a function of time")
 plt.savefig("av_average_regret_comparison.png")
-
- 
-# Compare to:
-# 3. Same algorithm, but each agent learns independently
