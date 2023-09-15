@@ -295,8 +295,7 @@ def episode(curr_time, type):
 --------------------------------------------------------------------------------------------------------------------------------------- 
 """
 cumulative_regrets = {}
-# type_list = ['original', 'median', 'max']
-type_list = ['max']
+type_list = ['original', 'median', 'max']
 # Note that variations in the results come from an unstable maximum weight matching algorithm in the 'episode' function
 
 # Problem Parameters
@@ -467,6 +466,8 @@ plt.clf()
 num = 0
 for type in type_list:
     plt.plot(range(T), np.divide(np.mean(cumulative_regrets[type], axis = 0), range(1, T+1)), alpha = 0.9, color=palette[num], label = type)
+    num += 1
+    
 plt.xlabel("Time")
 plt.ylabel("Average Regret")
 plt.legend()
