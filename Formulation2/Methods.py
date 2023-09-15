@@ -641,24 +641,24 @@ for i in G:
 sns.set_theme()
 plt.clf()
 nx.draw(G, with_labels = True)
-plt.savefig("state_graph.png")
+plt.savefig(sys.argv[2] + "state_graph.png")
 
 # Get theoretical max_per_turn
 _, max_per_turn = optimal_distribution([G.nodes[node]['arm'] for node in G.nodes()], theoretical = True)
 
 # Run algorithm num_times for each algorithmic type (min, median, max)
 for type in type_list:
-    if not os.path.exists(type):
-        os.makedirs(type)
+    if not os.path.exists(sys.argv[2] + type):
+        os.makedirs(sys.argv[2] + type)
 
     cumulative_regrets[type] = []
     for trial in range(num_trials):
     # Initialize output file and results directory
-        if not os.path.exists(type + "/trial_" + str(trial)):
-            os.makedirs(type + "/trial_" + str(trial))
+        if not os.path.exists(sys.argv[2] + type + "/trial_" + str(trial)):
+            os.makedirs(sys.argv[2] + type + "/trial_" + str(trial))
         
         # Open results file
-        f = open(type + "/trial_" + str(trial) + "/{}.txt".format(sys.argv[1]), "w")
+        f = open(sys.argv[2] + type + "/trial_" + str(trial) + "/{}.txt".format(sys.argv[1]), "w")
 
         if type != 'individual':
             reward_per_turn, curr_time = run(type)
@@ -686,7 +686,7 @@ for type in type_list:
         plt.ylabel("Cumulative Reward")
         plt.title("Cumulative reward as a function of time")
         plt.legend()
-        plt.savefig(type + "/trial_" + str(trial) + "/cumulative_reward.png")
+        plt.savefig(sys.argv[2] + type + "/trial_" + str(trial) + "/cumulative_reward.png")
 
         # # Plot Cumulative Regret
         plt.clf()
@@ -694,7 +694,7 @@ for type in type_list:
         plt.xlabel("Time")
         plt.ylabel("Cumulative Regret")
         plt.title("Cumulative regret as a function of time")
-        plt.savefig(type + "/trial_" + str(trial) + "/cumulative_regret.png")
+        plt.savefig(sys.argv[2] + type + "/trial_" + str(trial) + "/cumulative_regret.png")
 
         # # Plot Average Regret
         plt.clf()
@@ -702,7 +702,7 @@ for type in type_list:
         plt.xlabel("Time")
         plt.ylabel("Average Regret")
         plt.title("Average regret as a function of time")
-        plt.savefig(type + "/trial_" + str(trial) + "/av_regret.png")
+        plt.savefig(sys.argv[2] + type + "/trial_" + str(trial) + "/av_regret.png")
 
 
     # # Plot Cumulative Regret Averaged over all trials of current type
@@ -716,7 +716,7 @@ for type in type_list:
     plt.xlabel("Time")
     plt.ylabel("Cumulative Regret")
     plt.title("Cumulative regret as a function of time")
-    plt.savefig(type + "/av_cumulative_regret.png")
+    plt.savefig(sys.argv[2] + type + "/av_cumulative_regret.png")
 
     # # Plot Average Regret Averaged over all trials of current type
     plt.clf()
@@ -727,9 +727,9 @@ for type in type_list:
     plt.xlabel("Time")
     plt.ylabel("Average Regret")
     plt.title("Average regret as a function of time")
-    plt.savefig(type + "/av_average_regret.png")
+    plt.savefig(sys.argv[2] + type + "/av_average_regret.png")
 
-    np.save(type + "/cumulative_regrets.npy", cumulative_regrets[type])
+    np.save(sys.argv[2] + type + "/cumulative_regrets.npy", cumulative_regrets[type])
 
 
 # # Plot Mean Regret for different algorithm types
@@ -742,7 +742,7 @@ plt.xlabel("Time")
 plt.ylabel("Cumulative Regret")
 plt.legend()
 plt.title("Cumulative regret as a function of time")
-plt.savefig("av_cumulative_regret_comparison.png")
+plt.savefig(sys.argv[2] + "av_cumulative_regret_comparison.png")
 
 # # Plot Average Regret for different algorithm types
 plt.clf()
@@ -753,4 +753,4 @@ plt.xlabel("Time")
 plt.ylabel("Average Regret")
 plt.legend()
 plt.title("Average regret as a function of time")
-plt.savefig("av_average_regret_comparison.png")
+plt.savefig(sys.argv[2] + "av_average_regret_comparison.png")
