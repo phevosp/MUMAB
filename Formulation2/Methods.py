@@ -27,6 +27,7 @@ class Arm:
     Methods:
         get_reward:     returns random reward for pulling the arm
         pull:           updates the arm's attributes after simulating a pull of the arm
+        reset:         resets the arm's attributes
     """
     def __init__(self, id):
         self.id             :int   = id
@@ -36,9 +37,11 @@ class Arm:
         self.estimated_mean :int   = 0
         self.conf_radius    :int   = 0
         self.ucb            :int   = 0
-        # We use 2+id as the base of the log
+
+        # We use 2+(id%10) as the base of the log
         # All these functions are concave and increasing with f(0) = 0 and f(1) = 1
-        self.function              = lambda x : (np.emath.logn(2+id, 0.05*x + 1/(2+id)) + 1) / (np.emath.logn(2 + id, 0.05 + 1/(2 + id)) + 1)
+        log_base                   = 2 + (id%10)
+        self.function              = lambda x : (np.emath.logn(log_base, 0.05*x + 1/(log_base)) + 1) / (np.emath.logn(log_base, 0.05 + 1/(log_base)) + 1)
 
     def get_reward(self):
         return np.random.normal(loc = self.true_mean, scale = 0.06)
@@ -131,6 +134,11 @@ def initialize():
     return curr_time, rew_per_turn
 
 def optimal_distribution(arm_list, theoretical = False):
+    """
+        Calculates the optimal distribution of agents over the arms.
+        If theoretical == False, uses the current UCB estimates of each arm.
+        If theoretical == True, uses the true means of each arm.
+    """
     m = gp.Model("mip1")
     m.setParam('OutputFlag', 0)
     store_vars = {}
@@ -138,17 +146,22 @@ def optimal_distribution(arm_list, theoretical = False):
     for arm in arm_list:
         # This is the number of agents selecting each arm (call it x)
         store_vars[f"x_{arm.id}"]    = m.addVar(vtype = gp.GRB.INTEGER, lb = 0.0, ub = M, name = f"x_{arm.id}")
-        # This is 0.05*x_{} + 1/(2+id)
-        temp1                                = m.addVar(vtype = gp.GRB.CONTINUOUS, lb = 0.0, name = f"0.05*x_{arm.id}+1/(2+id)")
-        # This is np.emath.logn(2+id, 0.05*x + 1/(2+id))
-        temp2                                = m.addVar(vtype = gp.GRB.CONTINUOUS, lb = -gp.GRB.INFINITY, name = f"(np.emath.logn(2+id,0.05*x_{arm.id}+1/(2+id)))")
-        # This is f(x) = (np.emath.logn(2+id, 0.05*x + 1/(2+id)) + 1) / (np.emath.logn(2 + id, 0.05 + 1/(2 + id)) + 1)
+        # This is 0.05*x_{} + 1/(log_base)
+        temp1                                = m.addVar(vtype = gp.GRB.CONTINUOUS, lb = 0.0, name = f"0.05*x_{arm.id}+1/(log_base)")
+        # This is np.emath.logn(log_base, 0.05*x + 1/(log_base))
+        temp2                                = m.addVar(vtype = gp.GRB.CONTINUOUS, lb = -gp.GRB.INFINITY, name = f"(np.emath.logn(log_base,0.05*x_{arm.id}+1/(log_base)))")
+        # This is f(x) = (np.emath.logn(log_base, 0.05*x + 1/(log_base)) + 1) / (np.emath.logn(log_base, 0.05 + 1/(log_base)) + 1)
         store_vars[f"f(x_{arm.id})"] = m.addVar(vtype = gp.GRB.CONTINUOUS, name = f"f(x_{arm.id})")
 
-        m.addConstr(temp1 == 0.05 * store_vars[f"x_{arm.id}"] + 1/(2+arm.id), name = f"constr1_x_{arm.id}")
-        m.addGenConstrLogA(temp1, temp2, 2+arm.id)
-        m.addConstr(store_vars[f"f(x_{arm.id})"] == (temp2+1)/(np.emath.logn(2+arm.id, 0.05 + 1/(2 + arm.id)) + 1), name = f"constr2_x_{arm.id}")
+        # We use 2+(id%10) as the base of the log
+        log_base = 2+(arm.id%10)
 
+        # Add constraints
+        m.addConstr(temp1 == 0.05 * store_vars[f"x_{arm.id}"] + 1/log_base, name = f"constr1_x_{arm.id}")
+        m.addGenConstrLogA(temp1, temp2, log_base)
+        m.addConstr(store_vars[f"f(x_{arm.id})"] == (temp2+1)/(np.emath.logn(log_base, 0.05 + 1/log_base) + 1), name = f"constr2_x_{arm.id}")
+
+    # Constraint that we can only pick M times
     m.addConstr(sum([store_vars[f"x_{arm.id}"] for arm in arm_list]) == M)
     if not theoretical:
         m.setObjective(sum([arm.ucb * store_vars[f"f(x_{arm.id})"] for arm in arm_list]), gp.GRB.MAXIMIZE)
@@ -162,17 +175,16 @@ def optimal_distribution(arm_list, theoretical = False):
         m.write("model.ilp")
 
     store_values = m.getAttr("X", store_vars)
-    # for key in store_values:
-    #     if store_values[key] > 0:
-    #         print(key, store_values[key])
-
     return store_values, m.getObjective().getValue()
 
 def episode(curr_time, type):
     """
         Runs one episode of the algorithm. 
-        Each agent moves to assigned destination node (one to each of the M arms with highest UCB).
-        Agents sample their assigned destination node until at least one arm has been had its samples doubled.
+        Optimal distribution is computed using UCB estimates of each arm.
+        Agents move to their assigned destination node, and sample that node until the baseline_arm has its samples doubled.
+        If type == 'original': baseline_arm is the arm with the least number of pulls
+        If type == 'median':   baseline_arm is the arm with the median number of pulls
+        If type == 'max':      baseline_arm is the arm with the most number of pulls
     """
     # Keep track of reward per turn
     rew_per_turn = []
@@ -294,9 +306,10 @@ def episode(curr_time, type):
     Executable Code
 --------------------------------------------------------------------------------------------------------------------------------------- 
 """
+# Note that variations in the results come from an unstable maximum weight matching algorithm in the 'episode' function
 cumulative_regrets = {}
 type_list = ['original', 'median', 'max']
-# Note that variations in the results come from an unstable maximum weight matching algorithm in the 'episode' function
+names = ["G-combUCB", "G-combUCB-median", "G-combUCB-max"]
 
 # Problem Parameters
 # T = 15000
@@ -334,6 +347,7 @@ plt.savefig("state_graph.png")
 # Get theoretical max_per_turn
 _, max_per_turn = optimal_distribution([G.nodes[node]['arm'] for node in G.nodes()], theoretical = True)
 
+# Run algorithm num_times for each algorithmic type (min, median, max)
 for type in type_list:
     if not os.path.exists(type):
         os.makedirs(type)
@@ -420,7 +434,7 @@ for type in type_list:
         plt.savefig(type + "/trial_" + str(trial) + "/av_regret.png")
 
 
-    # # Plot Cumulative Regret Averaged over Trials
+    # # Plot Cumulative Regret Averaged over all trials of current type
     av_cum_regret = np.mean(cumulative_regrets[type], axis = 0)
 
     plt.clf()
@@ -433,7 +447,7 @@ for type in type_list:
     plt.title("Cumulative regret as a function of time")
     plt.savefig(type + "/av_cumulative_regret.png")
 
-    # # Plot Average Regret Averaged over Trials
+    # # Plot Average Regret Averaged over all trials of current type
     plt.clf()
     for i in range(num_trials):
         plt.plot(range(T), np.divide(cumulative_regrets[type][i], range(1, T+1)), alpha = 0.4, color= 'grey')
@@ -447,13 +461,11 @@ for type in type_list:
     np.save(type + "/cumulative_regrets.npy", cumulative_regrets[type])
 
 
-# # Plot Mean Regret from different comparisons
+# # Plot Mean Regret for different algorithm types
 plt.clf()
 palette = sns.color_palette()
-num = 0
-for type in type_list:
-    plt.plot(range(T), np.mean(cumulative_regrets[type], axis = 0), alpha = 0.9, color= palette[num], label = type)
-    num += 1
+for i, type in enumerate(type_list):
+    plt.plot(range(T), np.mean(cumulative_regrets[type], axis = 0), alpha = 0.9, color= palette[i], label = names[i])
 
 plt.xlabel("Time")
 plt.ylabel("Cumulative Regret")
@@ -461,13 +473,11 @@ plt.legend()
 plt.title("Cumulative regret as a function of time")
 plt.savefig("av_cumulative_regret_comparison.png")
 
-# # Plot Average Regret Averaged over Trials
+# # Plot Average Regret for different algorithm types
 plt.clf()
-num = 0
-for type in type_list:
-    plt.plot(range(T), np.divide(np.mean(cumulative_regrets[type], axis = 0), range(1, T+1)), alpha = 0.9, color=palette[num], label = type)
-    num += 1
-    
+for i, type in enumerate(type_list):
+    plt.plot(range(T), np.divide(np.mean(cumulative_regrets[type], axis = 0), range(1, T+1)), alpha = 0.9, color=palette[i], label = names[i])
+
 plt.xlabel("Time")
 plt.ylabel("Average Regret")
 plt.legend()
@@ -476,6 +486,4 @@ plt.savefig("av_average_regret_comparison.png")
 
  
 # Compare to:
-# 1. Same algorithm, but choose to double the maximum sampled arm rather than the min
-# 2. Same algorithm, but choose to double the mediam sampled arm rather than the min 
 # 3. Same algorithm, but each agent learns independently
