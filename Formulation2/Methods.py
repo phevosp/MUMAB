@@ -41,7 +41,7 @@ class Arm:
         # We use 2+(id%10) as the base of the log
         # All these functions are concave and increasing with f(0) = 0 and f(1) = 1
         log_base                   = 2 + (id%10)
-        self.function              = lambda x : (np.emath.logn(log_base, 0.05*x + 1/(log_base)) + 1) / (np.emath.logn(log_base, 0.05 + 1/(log_base)) + 1)
+        self.function              = lambda x : (np.emath.logn(log_base, 0.2*x + 1/(log_base)) + 1) / (np.emath.logn(log_base, 0.2 + 1/(log_base)) + 1)
 
     def get_reward(self):
         return np.random.normal(loc = self.true_mean, scale = 0.06)
@@ -281,6 +281,7 @@ def initialize_indv(G, agents):
     return curr_time, rew_per_turn
 
 def optimal_distribution(arm_list, theoretical = False):
+    ### DOUBLE CHECK THE CHANGE TO THE F FUNCTIONS
     """
         Calculates the optimal distribution of agents over the arms.
         If theoretical == False, uses the current UCB estimates of each arm.
@@ -304,9 +305,9 @@ def optimal_distribution(arm_list, theoretical = False):
         log_base = 2+(arm.id%10)
 
         # Add constraints
-        m.addConstr(temp1 == 0.05 * store_vars[f"x_{arm.id}"] + 1/log_base, name = f"constr1_x_{arm.id}")
+        m.addConstr(temp1 == 0.2 * store_vars[f"x_{arm.id}"] + 1/log_base, name = f"constr1_x_{arm.id}")
         m.addGenConstrLogA(temp1, temp2, log_base)
-        m.addConstr(store_vars[f"f(x_{arm.id})"] == (temp2+1)/(np.emath.logn(log_base, 0.05 + 1/log_base) + 1), name = f"constr2_x_{arm.id}")
+        m.addConstr(store_vars[f"f(x_{arm.id})"] == (temp2+1)/(np.emath.logn(log_base, 0.2 + 1/log_base) + 1), name = f"constr2_x_{arm.id}")
 
     # Constraint that we can only pick M times
     m.addConstr(sum([store_vars[f"x_{arm.id}"] for arm in arm_list]) == M)
@@ -614,11 +615,11 @@ type_list = ['original', 'median', 'max', "individual"]
 names     = ["G-combUCB", "G-combUCB-median", "G-combUCB-max", "Multi-G-UCB"]
 
 # Problem Parameters
-T = 15000
-K = 500
-M = 20
+T = 100
+K = 50
+M = 2
 p = 0.05
-num_trials = 10
+num_trials = 2
 
 # Create Stochastic Setting
 #---------------------------------------------------#
@@ -754,3 +755,28 @@ plt.ylabel("Average Regret")
 plt.legend()
 plt.title("Average regret as a function of time")
 plt.savefig(sys.argv[2] + "av_average_regret_comparison.png")
+
+# # Plot Mean Regret for different algorithm types
+plt.clf()
+palette = sns.color_palette()
+for i, type in enumerate(type_list):
+    plt.plot(range(T), np.mean(cumulative_regrets[type], axis = 0), alpha = 0.9, color= palette[i], label = names[i])
+
+plt.xlabel("Time")
+plt.ylabel("Cumulative Regret")
+plt.xscale('log')
+plt.legend()
+plt.title("Cumulative regret as a function of time")
+plt.savefig(sys.argv[2] + "av_cumulative_regret_comparison_log.png")
+
+# # Plot Average Regret for different algorithm types
+plt.clf()
+for i, type in enumerate(type_list):
+    plt.plot(range(T), np.divide(np.mean(cumulative_regrets[type], axis = 0), range(1, T+1)), alpha = 0.9, color=palette[i], label = names[i])
+
+plt.xlabel("Time")
+plt.ylabel("Average Regret")
+plt.xscale('log')
+plt.legend()
+plt.title("Average regret as a function of time")
+plt.savefig(sys.argv[2] + "av_average_regret_comparison_log.png")
