@@ -85,7 +85,7 @@ class Arm_indv:
         # We use 2+(id%10) as the base of the log
         # All these functions are concave and increasing with f(0) = 0 and f(1) = 1
         log_base                   = 2 + (id%10)
-        self.function              = lambda x : (np.emath.logn(log_base, 0.05*x + 1/(log_base)) + 1) / (np.emath.logn(log_base, 0.05 + 1/(log_base)) + 1)
+        self.function              = lambda x : (np.emath.logn(log_base, 0.2*x + 1/(log_base)) + 1) / (np.emath.logn(log_base, 0.2 + 1/(log_base)) + 1)
 
     def get_reward(self):
         return np.random.normal(loc = self.true_mean, scale = 0.06)
@@ -301,8 +301,8 @@ def optimal_distribution(arm_list, theoretical = False):
         # This is f(x) = (np.emath.logn(log_base, 0.05*x + 1/(log_base)) + 1) / (np.emath.logn(log_base, 0.05 + 1/(log_base)) + 1)
         store_vars[f"f(x_{arm.id})"] = m.addVar(vtype = gp.GRB.CONTINUOUS, name = f"f(x_{arm.id})")
 
-        # We use 2+(id%10) as the base of the log
-        log_base = 2+(arm.id%10)
+        # We use 2+id as the base of the log
+        log_base = 2 + (arm.id%10)
 
         # Add constraints
         m.addConstr(temp1 == 0.2 * store_vars[f"x_{arm.id}"] + 1/log_base, name = f"constr1_x_{arm.id}")
@@ -615,11 +615,11 @@ type_list = ['original', 'median', 'max', "individual"]
 names     = ["G-combUCB", "G-combUCB-median", "G-combUCB-max", "Multi-G-UCB"]
 
 # Problem Parameters
-T = 100
-K = 50
-M = 2
+T = 150000
+K = 300
+M = 20
 p = 0.05
-num_trials = 2
+num_trials = 10
 
 # Create Stochastic Setting
 #---------------------------------------------------#
