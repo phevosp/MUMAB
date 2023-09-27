@@ -21,18 +21,22 @@ for i, type in enumerate(type_list):
 plt.xlabel("Time")
 plt.ylabel("Cumulative Regret")
 plt.ticklabel_format(style='scientific', axis='both', scilimits=(0,0))
+plt.grid(True)
 plt.legend()
 plt.title("Cumulative regret as a function of time")
+plt.ylim(0, 250000)
+plt.xlim(0, 150000)
+# plt.show()
 plt.savefig("final_av_cumulative_regret_comparison.png")
 
-# # Plot Average Regret for different algorithm types
-plt.clf()
-for i, type in enumerate(type_list):
-    plt.plot(range(T), np.divide(np.mean(cumulative_regrets[type], axis = 0), range(1, T+1)), alpha = 0.9, color=palette[i], label = names[i])
+# # # Plot Average Regret for different algorithm types
+# plt.clf()
+# for i, type in enumerate(type_list):
+#     plt.plot(range(T), np.divide(np.mean(cumulative_regrets[type], axis = 0), range(1, T+1)), alpha = 0.9, color=palette[i], label = names[i])
 
-plt.xlabel("Time")
-plt.ylabel("Average Regret")
-plt.xscale('log')
-plt.legend()
-plt.title("Average regret as a function of time")
-plt.savefig("final_av_average_regret_comparison_log.png")
+# plt.xlabel("Time")
+# plt.ylabel("Average Regret")
+# plt.xscale('log')
+# plt.legend()
+# plt.title("Average regret as a function of time")
+# plt.savefig("final_av_average_regret_comparison_log.png")
