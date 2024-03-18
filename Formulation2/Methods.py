@@ -29,7 +29,7 @@ class Arm:
         pull:           updates the arm's attributes after simulating a pull of the arm
         reset:         resets the arm's attributes
     """
-    def __init__(self, id):
+    def __init__(self, id, ftype = 'concave'):
         self.id             :int   = id
         self.true_mean      :float = random.random() * 0.5 + 0.25
         self.num_pulls      :int   = 0
@@ -41,7 +41,11 @@ class Arm:
         # We use 2+(id%10) as the base of the log
         # All these functions are concave and increasing with f(0) = 0 and f(1) = 1
         log_base                   = 2 + (id%10)
-        self.function              = lambda x : (np.emath.logn(log_base, 0.2*x + 1/(log_base)) + 1) / (np.emath.logn(log_base, 0.2 + 1/(log_base)) + 1)
+        if ftype == "concave":
+            self.function              = lambda x : (np.emath.logn(log_base, 0.2*x + 1/(log_base)) + 1) / (np.emath.logn(log_base, 0.2 + 1/(log_base)) + 1)
+        elif ftype == "collision":
+            self.function              = lambda x : x if x <= 1 else 0
+
 
     def get_reward(self):
         return np.random.normal(loc = self.true_mean, scale = 0.06)
@@ -78,14 +82,17 @@ class Arm_indv:
         get_reward:     returns random reward for pulling the arm
         pull:           updates each agents' view of the arm after simulating a pull of the arm
     """
-    def __init__(self, id):
+    def __init__(self, id, ftype = 'concave'):
         self.id             :int   = id
         self.true_mean      :float = random.random() * 0.5 + 0.25
 
         # We use 2+(id%10) as the base of the log
         # All these functions are concave and increasing with f(0) = 0 and f(1) = 1
         log_base                   = 2 + (id%10)
-        self.function              = lambda x : (np.emath.logn(log_base, 0.2*x + 1/(log_base)) + 1) / (np.emath.logn(log_base, 0.2 + 1/(log_base)) + 1)
+        if ftype == "concave":
+            self.function              = lambda x : (np.emath.logn(log_base, 0.2*x + 1/(log_base)) + 1) / (np.emath.logn(log_base, 0.2 + 1/(log_base)) + 1)
+        elif ftype == "collision":
+            self.function              = lambda x : x if x <= 1 else 0
 
     def get_reward(self):
         return np.random.normal(loc = self.true_mean, scale = 0.06)
@@ -612,6 +619,7 @@ def run_indv(G):
 # Note that variations in the results come from an unstable maximum weight matching algorithm in the 'episode' function
 cumulative_regrets = {}
 type_list = ['original', 'median', 'max', "individual"]
+ftype_list = ['concave', 'collision']
 names     = ["G-combUCB", "G-combUCB-median", "G-combUCB-max", "Multi-G-UCB"]
 
 # Problem Parameters
@@ -633,7 +641,7 @@ assert(nx.is_connected(G))
 
 # Assign each vertex an associated arm
 for i in G:
-    G.nodes[i]['arm'] = Arm(i)
+    G.nodes[i]['arm'] = Arm(i, ftype="collision")
     # print(G.nodes[i]['arm'].true_mean)
     G.nodes[i]['id']  = i
     G.nodes[i]['prev_node'] = G.nodes[i]
