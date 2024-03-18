@@ -81,3 +81,16 @@ class Plotter:
         plt.title("Average regret as a function of time")
         plt.savefig(output_dir + fname)
     
+    def plot_algs_avg_regret_ftypes(regret, function_types, type, name, T, output_dir):
+        fname = f"av_cumulative_regret_comparison_{type}"
+        plt.clf()
+        palette = sns.color_palette()
+        for i, ftype in enumerate(function_types):
+            plt.plot(range(T), np.divide(regret[ftype], range(1, T+1)), alpha = 0.9, color= palette[i], label=ftype)
+
+
+        plt.xlabel("Time")
+        plt.ylabel("Average Regret")
+        plt.legend()
+        plt.title(f"Average regret for Algorithm {name}")
+        plt.savefig(output_dir + fname)
