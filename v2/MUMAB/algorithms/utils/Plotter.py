@@ -13,7 +13,8 @@ class Plotter:
         title = "Normalized cumulative reward as a function of time" if normalized else "Cumulative reward as a function of time"
         plt.title(title)
         plt.legend()
-        plt.savefig(output_dir + "/cumulative_reward.png")
+        save_name = "/normalized_cumulative_reward.png" if normalized else "/cumulative_reward.png"
+        plt.savefig(output_dir + save_name)
 
     def plot_cumulative_regret(reward_per_turn, max_per_turn, transition_interval, output_dir, T, normalized):
         plt.clf()
@@ -29,7 +30,8 @@ class Plotter:
         plt.ylabel(ylabel)
         title  = "Normalized cumulative regret as a function of time" if normalized else "Cumulative regret as a function of time" 
         plt.title(title)
-        plt.savefig(output_dir +  "/cumulative_regret.png")
+        save_name = "/normalized_cumulative_regret.png" if normalized else "/cumulative_regret.png"
+        plt.savefig(output_dir + save_name)
 
     def plot_transition_regret_per_episode_cost(reward_per_turn, max_per_turn, transition_interval, output_dir, T):
             plt.clf()
@@ -52,7 +54,8 @@ class Plotter:
         plt.ylabel(ylabel)
         title  = "Normalized average regret as a function of time" if normalized else "Average regret as a function of time"
         plt.title(title)
-        plt.savefig(output_dir + "/av_regret.png")
+        save_name = "/normalized_average_regret.png" if normalized else "/average_regret.png"
+        plt.savefig(output_dir + save_name)
     
     def plot_cumulative_regret_total(alg_cumulative_regrets, av_cum_regret, output_dir, T, normalized):
         plt.clf()
@@ -65,7 +68,8 @@ class Plotter:
         plt.ylabel(ylabel)
         title  = "Normalized cumulative regret as a function of time" if normalized else "Cumulative regret as a function of time" 
         plt.title(title)
-        plt.savefig(output_dir + "/av_cumulative_regret.png")
+        save_name = "/normalized_av_cumulative_regret.png" if normalized else "/av_cumulative_regret.png"
+        plt.savefig(output_dir + save_name)
 
     def plot_average_regret_total(alg_cumulative_regrets, av_cum_regret, output_dir, T, normalized):
         plt.clf()
@@ -78,11 +82,15 @@ class Plotter:
         plt.ylabel(ylabel)
         title  = "Normalized average regret as a function of time" if normalized else "Average regret as a function of time"
         plt.title(title)
-        plt.savefig(output_dir + "/av_cumulative_regret.png")   
-        np.save(output_dir + "/cumulative_regrets.npy", alg_cumulative_regrets)
+        save_fig_name = "/normalized_av_cumulative_regret.png" if normalized else "/av_cumulative_regret.png"
+        plt.savefig(output_dir + save_fig_name)   
+        save_arr_name = "/normalized_cumulative_regret.npy" if normalized else "/cumulative_regret.npy"
+        np.save(output_dir + save_arr_name, alg_cumulative_regrets)
 
     def plot_algs_cum_regret(cumulative_regrets, alg_names, alg_types, output_dir, T, normalized, log_scaled=False):
         fname = "av_cumulative_regret_comparison.png" if not log_scaled else "av_cumulative_regret_comparison_log.png"
+        if normalized:
+            fname = "normalized_" + fname
         plt.clf()
         palette = sns.color_palette()
         for i, type in enumerate(alg_types):
@@ -99,6 +107,8 @@ class Plotter:
 
     def plot_algs_avg_regret(cumulative_regrets, alg_names, alg_types, output_dir, T, normalized, log_scaled=False):
         fname = "av_average_regret_comparison.png" if not log_scaled else "av_average_regret_comparison_log.png"
+        if normalized:
+            fname = "normalized_" + fname
         plt.clf()
         palette = sns.color_palette()
         for i, type in enumerate(alg_types):
@@ -115,6 +125,8 @@ class Plotter:
    
     def plot_algs_avg_regret_ftypes(regret, function_types, type, alg_name, T, output_dir, normalized):
         fname = f"av_average_regret_comparison_{type}"
+        if normalized:
+            fname = "normalized_" + fname
         plt.clf()
         palette = sns.color_palette()
         for i, ftype in enumerate(function_types):
@@ -124,12 +136,14 @@ class Plotter:
         ylabel = "Normalized Average Regret" if normalized else "Average Regret"
         plt.ylabel(ylabel)
         plt.legend()
-        title  = f"Normalized average regret for algorithm {alg_name}" if normalized else f"Average regret for algorithm {name}"
+        title  = f"Normalized average regret for algorithm {alg_name}" if normalized else f"Average regret for algorithm {alg_name}"
         plt.title(title)
         plt.savefig(output_dir + fname)
 
     def plot_algs_cum_regret_ftypes(regret, function_types, type, alg_name, T, output_dir, normalized):
         fname = f"av_cumulative_regret_comparison_{type}"
+        if normalized:
+            fname = "normalized_" + fname
         plt.clf()
         palette = sns.color_palette()
         for i, ftype in enumerate(function_types):
@@ -139,6 +153,6 @@ class Plotter:
         ylabel = "Normalized Cumulative Regret" if normalized else "Cumulative Regret"
         plt.ylabel(ylabel)
         plt.legend()
-        title  = f"Normalized cumulative regret for algorithm {alg_name}" if normalized else f"Cumulative regret for algorithm {name}"
+        title  = f"Normalized cumulative regret for algorithm {alg_name}" if normalized else f"Cumulative regret for algorithm {alg_name}"
         plt.title(title)
         plt.savefig(output_dir + fname)
