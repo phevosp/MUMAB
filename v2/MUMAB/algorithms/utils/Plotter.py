@@ -13,13 +13,32 @@ class Plotter:
         plt.legend()
         plt.savefig(output_dir + "/cumulative_reward.png")
 
-    def plot_cumulative_regret(reward_per_turn, max_per_turn, output_dir, T):
+    def plot_cumulative_regret(reward_per_turn, max_per_turn, transition_interval, output_dir, T):
         plt.clf()
-        plt.plot(range(T), np.subtract([max_per_turn * i for i in range(1, T+1)], np.cumsum(reward_per_turn)))
+        time = np.arange(0, T)
+        cum_regret = np.subtract([max_per_turn * i for i in range(1, T+1)], np.cumsum(reward_per_turn))
+        plt.plot(time, cum_regret)
+
+        for interval in transition_interval:
+            plt.fill_between(time,0, cum_regret, where=(time >= interval[0]) & (time <= interval[1]), color = 'gray')
+
         plt.xlabel("Time")
         plt.ylabel("Cumulative Regret")
         plt.title("Cumulative regret as a function of time")
         plt.savefig(output_dir +  "/cumulative_regret.png")
+
+    def plot_transition_regret_per_episode_cost(reward_per_turn, max_per_turn, transition_interval, output_dir, T):
+            plt.clf()
+            cum_regret = np.subtract([max_per_turn * i for i in range(1, T+1)], np.cumsum(reward_per_turn))
+            transition_regret_per_epsisode = [cum_regret[interval[1]] - cum_regret[interval[0]] for interval in transition_interval]
+            episodes = np.arange(0, len(transition_interval))
+            plt.plot(episodes, transition_regret_per_epsisode)
+            plt.xlabel("Episode")
+            plt.ylabel("Regret Incurred")
+            plt.title("Transition Regret vs Epsiodes")
+            plt.savefig(output_dir +  "/transition_regrets.png")
+
+            
 
     def plot_average_regret(reward_per_turn, max_per_turn, output_dir, T):
         plt.clf()
