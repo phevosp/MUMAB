@@ -1,0 +1,30 @@
+
+Arm 0
+True Mean: 0.6557017132883192
+Estimated Mean: 0.6551173634626253
+UCB Value: 0.6980925881418452
+Num Pulls: 9974
+Arm 1
+True Mean: 0.5253585829846666
+Estimated Mean: 0.5255726310967404
+UCB Value: 0.5736179844927913
+Num Pulls: 7980
+Arm 2
+True Mean: 0.41427625158117964
+Estimated Mean: 0.4113074774973108
+UCB Value: 0.5573569624539187
+Num Pulls: 832
+Arm 3
+True Mean: 0.25003395760851815
+Estimated Mean: 0.24868688958218946
+UCB Value: 0.5422068529358107
+Num Pulls: 192
+Arm 4
+True Mean: 0.4248308924398291
+Estimated Mean: 0.4262960815666328
+UCB Value: 0.5584560397683335
+Num Pulls: 1024
+----------------------------------------------------
+Total Time: 10000
+Net Reward: 11554.693070930009
+Theoretical Expected Max: 11810.602962729858
