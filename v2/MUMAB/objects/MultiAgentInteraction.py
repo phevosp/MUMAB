@@ -84,11 +84,9 @@ class ConstantMultiAgentInteraction(MultiAgentInteractionInterface):
         # Add constraints
         eps = 0.0001
         M = self.M + eps
-        # bigM_constr1:
         # If b = 0, this is non-binding
         # If b = 1, this means x >= 0.001 -> x >= 1 because x is an integer
         m.addConstr(store_vars[f"x_{self.arm_id}"] >= eps - M * (1 - b), name=f"constr_x_{self.arm_id}_b=1")
-        # bigM_constr2:
         # If b = 0, x <= 0, so x = 0
         # If b = 1, this is non-binding
         m.addConstr(store_vars[f"x_{self.arm_id}"] <= M * b, name=f"constr_x_{self.arm_id}_b=0")
@@ -108,12 +106,6 @@ class MuchMoreConcaveMultiAgentInteraction(ConcaveMultiAgentInteraction):
         super().__init__(id, M)
         # Re-define log base to log base + shift
         self.log_base += log_base_shift
-
-    def function(self, x):
-        super().function(x)
-
-    def add_constraints(self, m, store_vars):
-        super().add_constraints(m, store_vars)
 
 class CollisionMultiAgentInteraction(MultiAgentInteractionInterface):
     def __init__(self, id, M):
