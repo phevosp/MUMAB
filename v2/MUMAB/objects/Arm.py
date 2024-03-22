@@ -58,6 +58,9 @@ class Arm:
 
         return reward
     
+    def __str__(self):
+        return f"Arm {self.id}: True Mean = {self.true_mean}, Estimated Mean = {self.estimated_mean}, UCB = {self.ucb}, Num Pulls = {self.num_pulls}, Total Reward = {self.total_reward}"
+    
     def reset(self):
         self.num_pulls = 0
         self.total_reward = 0

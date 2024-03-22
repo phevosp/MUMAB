@@ -1,6 +1,9 @@
 import gurobipy as gp
 
-def optimal_distribution(arm_list, M, theoretical=False, minimize=False, debug=False):
+def optimal_distribution(arm_list, params, theoretical=False, minimize=False, debug=False, output_dir = None):
+    # Gurobi non-convex optimization finds convergence between upper and lower bound.
+    # Default gap is 1e-4, this hsould be sufficient for finding the optimal allocation    
+    # Documentation: https://www.gurobi.com/documentation/current/refman/mipgap2.html
     """
         Calculates the optimal distribution of agents over the arms.
         If theoretical,  uses the true means of each arm.
@@ -9,6 +12,8 @@ def optimal_distribution(arm_list, M, theoretical=False, minimize=False, debug=F
         If not minimize, will maximize
         If debug, will set output flag to 1 and write .lp
     """
+    M = params.M
+
     m = gp.Model("mip1")
     output_flag = 1 if debug else 0
     m.setParam('OutputFlag', output_flag)
@@ -35,7 +40,8 @@ def optimal_distribution(arm_list, M, theoretical=False, minimize=False, debug=F
         m.write(f"{model_name}.lp")
         m.write(f"{model_name}.ilp")
     elif debug:
-        m.write(f"{model_name}.lp")
+        assert(output_dir)
+        m.write(f"{output_dir}{model_name}.lp")
 
     store_values = m.getAttr("X", store_vars)
     return store_values, m.getObjective().getValue()
