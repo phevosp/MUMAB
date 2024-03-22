@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 Arm 0
 True Mean: 0.5413427053028718
@@ -506,3 +507,5 @@ Net Reward: 31975.140665187
 Theoretical Expected Max: 36720.35180598277
 =======
 >>>>>>> 1d839cd (Fix saving names)
+=======
+>>>>>>> 1d839cd64889a0484c318663610eb510f6626be7
