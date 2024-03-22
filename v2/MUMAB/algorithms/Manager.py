@@ -29,7 +29,7 @@ class Manager():
             
             # Open results file
             f = open(f"{trial_output_dir}/results.txt", "w")
-            reward_per_turn, curr_time = mab_alg.run(f)
+            reward_per_turn, curr_time, transition_intervals = mab_alg.run(f)
  
             # print('Total Time: ' + str(curr_time))
             f.write('\n----------------------------------------------------\n')
@@ -44,8 +44,9 @@ class Manager():
             self.cumulative_regrets[alg_type].append(cum_regret)
 
             plt.plot_cumulative_reward(reward_per_turn, max_per_turn, trial_output_dir, self.T)
-            plt.plot_cumulative_regret(reward_per_turn, max_per_turn, trial_output_dir, self.T)
-            plt.plot_average_regret(reward_per_turn, max_per_turn, trial_output_dir, self.T)            
+            plt.plot_cumulative_regret(reward_per_turn, max_per_turn, transition_intervals, trial_output_dir, self.T)
+            plt.plot_average_regret(reward_per_turn, max_per_turn, trial_output_dir, self.T)    
+            plt.plot_transition_regret_per_episode_cost(reward_per_turn, max_per_turn, transition_intervals, trial_output_dir, self.T)        
         return np.mean(self.cumulative_regrets[alg_type], axis = 0)
 
     def evaluate_algs(self, output_dir, regret, ftype):
