@@ -133,8 +133,9 @@ class MAB:
         # Edge weights are (max_ucb - ucb) where max_ucb is the UCB of the optimal arm
         G_directed = nx.DiGraph(self.G)
         for (u, v) in self.G.edges():
-            G_directed.edges[u, v]["weight"] = max_ucb - self.G.nodes[v]['arm'].ucb
-            G_directed.edges[v, u]["weight"] = max_ucb - self.G.nodes[u]['arm'].ucb
+            # Floating point errors incured so flooring at 0
+            G_directed.edges[u, v]["weight"] = max(max_ucb - self.G.nodes[v]['arm'].ucb, 0)
+            G_directed.edges[v, u]["weight"] = max(max_ucb - self.G.nodes[u]['arm'].ucb, 0)
 
         # For each agent and optimal arm pair compute shortest path to create weights for bipartite graph
         # sp_dict is indexed by (agent_id, node_i) and stores a tuple (path length, actual path)
@@ -142,7 +143,13 @@ class MAB:
         sp_dict = {}
         for agent in agents:
             # Compute single source shortest path
-            shortest_path        = nx.shortest_path(G_directed, source = agent.current_node['id'], weight = "weight")
+            try:
+                shortest_path        = nx.shortest_path(G_directed, source = agent.current_node['id'], weight = "weight") 
+            except:
+                for (u, v) in G_directed.edges():
+                    if G_directed.edges[u, v]["weight"] < 0:
+                        print(G_directed.edges[u, v]["weight"])
+                assert(False)
             shortest_path_length = nx.shortest_path_length(G_directed, source = agent.current_node['id'], weight = "weight")
             # And then add path to shortest path dictionary for all destination nodes
             for i, dest_node in enumerate(sampled_nodes):
@@ -170,6 +177,10 @@ class MAB:
         # Move agents along paths, if agents have reached the end of their journey then they stay at desination node
         max_path_length = max([len(path) for path in paths])
         i = 0
+
+        # determines transition time interval, starts at the current time and goes until the minimum of self.T or curr_time + max_path_length
+        trans_t = (curr_time, min(curr_time + max_path_length, self.T))
+
         while i < max_path_length and curr_time < self.T:
             curr_time += 1
             i += 1
@@ -209,7 +220,7 @@ class MAB:
             for arm in arm_dict:
                 rew_per_turn[-1] += arm.pull(curr_time, arm_dict[arm])
 
-        return curr_time, rew_per_turn
+        return curr_time, rew_per_turn, trans_t
     
     def run(self, f):
         # Reset arms
@@ -226,13 +237,18 @@ class MAB:
         curr_time = 0
         curr_ep   = 0
         curr_time, reward_per_turn = self.initialize(agents)
+
+
+        # List of transition intervals
+        transition_intervals = []
         with tqdm(total=self.T) as pbar:
             while curr_time < self.T:
                 curr_ep   += 1
                 # print("Episode {}".format(curr_ep))
                 # f.write("Starting Episode {}, Current time is {}\n".format(curr_ep, curr_time))
-                curr_time, new_rewards = self.episode(agents, curr_time)
+                curr_time, new_rewards, trans_t = self.episode(agents, curr_time)
                 reward_per_turn += new_rewards
+                transition_intervals.append(trans_t)
                 pbar.update(curr_time - pbar.n)
         pbar.close()
 
@@ -245,7 +261,7 @@ class MAB:
             f.write("\nUCB Value: " + str(arm.ucb))
             f.write("\nNum Pulls: " + str(arm.num_pulls))
 
-        return reward_per_turn, curr_time
+        return reward_per_turn, curr_time, transition_intervals
 
 class MAB_indv:
     def __init__(self, G, params):
@@ -364,6 +380,10 @@ class MAB_indv:
         # Move agents along paths, if agents have reached the end of their journey then they stay at desination node
         max_path_length = max([len(path) for path in paths])
         i = 0
+
+        # determines transition time interval, starts at the current time and goes until the minimum of self.T or curr_time + max_path_length
+        trans_t = (curr_time, min(curr_time + max_path_length, self.T))
+
         while i < max_path_length and curr_time < self.T:
             curr_time += 1
             i += 1
@@ -403,7 +423,7 @@ class MAB_indv:
             for arm in arm_dict:
                 rew_per_turn[-1] += arm.pull_individual(curr_time, agents, arm_dict[arm])
 
-        return curr_time, rew_per_turn
+        return curr_time, rew_per_turn, trans_t
     
     def run(self, f):
         """
@@ -425,12 +445,16 @@ class MAB_indv:
         curr_ep   = 0
         curr_time, reward_per_turn = self.initialize(agents)
 
+        # List of transition intervals
+        transition_intervals = []
+
         while curr_time < self.T:
             curr_ep   += 1
             # print("Episode {}".format(curr_ep))
             # f.write("Starting Episode {}, Current time is {}\n".format(curr_ep, curr_time))
-            curr_time, new_rewards = self.episode(agents, curr_time)
+            curr_time, new_rewards, trans_t = self.episode(agents, curr_time)
             reward_per_turn += new_rewards
+            transition_intervals.append(trans_t)
 
         # Get results
         for agent in agents:
@@ -444,7 +468,7 @@ class MAB_indv:
                 f.write("\nUCB Value: " + str(agent.ucb_dict[arm.id]))
                 f.write("\nNum Pulls: " + str(agent.num_pulls_dict[arm.id]))
 
-        return reward_per_turn, curr_time
+        return reward_per_turn, curr_time, transition_intervals
 
 def getMAB(type, G, params):
     if type == 'indv':
