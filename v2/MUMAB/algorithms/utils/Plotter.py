@@ -3,17 +3,19 @@ import numpy as np
 import seaborn as sns
 
 class Plotter:
-    def plot_cumulative_reward(reward_per_turn, max_per_turn, output_dir, T):
+    def plot_cumulative_reward(reward_per_turn, max_per_turn, output_dir, T, normalized):
         plt.clf()
         plt.plot(range(T), np.cumsum(reward_per_turn), label = 'Observed')
         plt.plot(range(T), [max_per_turn * i for i in range(1, T+1)], label = 'Theoretical Max')
         plt.xlabel("Time")
-        plt.ylabel("Cumulative Reward")
-        plt.title("Cumulative reward as a function of time")
+        ylabel = "Normalized Cumulative Reward" if normalized else "Cumulative Reward"
+        plt.ylabel(ylabel)
+        title = "Normalized cumulative reward as a function of time" if normalized else "Cumulative reward as a function of time"
+        plt.title(title)
         plt.legend()
         plt.savefig(output_dir + "/cumulative_reward.png")
 
-    def plot_cumulative_regret(reward_per_turn, max_per_turn, transition_interval, output_dir, T):
+    def plot_cumulative_regret(reward_per_turn, max_per_turn, transition_interval, output_dir, T, normalized):
         plt.clf()
         time = np.arange(0, T)
         cum_regret = np.subtract([max_per_turn * i for i in range(1, T+1)], np.cumsum(reward_per_turn))
@@ -23,8 +25,10 @@ class Plotter:
             plt.fill_between(time,0, cum_regret, where=(time >= interval[0]) & (time <= interval[1]), color = 'gray')
 
         plt.xlabel("Time")
-        plt.ylabel("Cumulative Regret")
-        plt.title("Cumulative regret as a function of time")
+        ylabel = "Normalized Cumulative Regret" if normalized else "Cumulative Regret"
+        plt.ylabel(ylabel)
+        title  = "Normalized cumulative regret as a function of time" if normalized else "Cumulative regret as a function of time" 
+        plt.title(title)
         plt.savefig(output_dir +  "/cumulative_regret.png")
 
     def plot_transition_regret_per_episode_cost(reward_per_turn, max_per_turn, transition_interval, output_dir, T):
@@ -40,39 +44,44 @@ class Plotter:
 
             
 
-    def plot_average_regret(reward_per_turn, max_per_turn, output_dir, T):
+    def plot_average_regret(reward_per_turn, max_per_turn, output_dir, T, normalized):
         plt.clf()
         plt.plot(range(T), np.divide(np.subtract([max_per_turn * i for i in range(1, T+1)], np.cumsum(reward_per_turn)), range(1, T+1)))
         plt.xlabel("Time")
-        plt.ylabel("Average Regret")
-        plt.title("Average regret as a function of time")
+        ylabel = "Normalized Average Regret" if normalized else "Average Regret"
+        plt.ylabel(ylabel)
+        title  = "Normalized average regret as a function of time" if normalized else "Average regret as a function of time"
+        plt.title(title)
         plt.savefig(output_dir + "/av_regret.png")
     
-    def plot_cumulative_regret_total(alg_cumulative_regrets, av_cum_regret, output_dir, T):
+    def plot_cumulative_regret_total(alg_cumulative_regrets, av_cum_regret, output_dir, T, normalized):
         plt.clf()
         for regret in alg_cumulative_regrets:
             plt.plot(range(T), regret, alpha = 0.4, color= 'grey')
 
         plt.plot(range(T), av_cum_regret, alpha = 0.7, color='orange')
         plt.xlabel("Time")
-        plt.ylabel("Cumulative Regret")
-        plt.title("Cumulative regret as a function of time")
+        ylabel = "Normalized Cumulative Regret" if normalized else "Cumulative Regret"
+        plt.ylabel(ylabel)
+        title  = "Normalized cumulative regret as a function of time" if normalized else "Cumulative regret as a function of time" 
+        plt.title(title)
         plt.savefig(output_dir + "/av_cumulative_regret.png")
 
-    def plot_average_regret_total(alg_cumulative_regrets, av_cum_regret, output_dir, T):
+    def plot_average_regret_total(alg_cumulative_regrets, av_cum_regret, output_dir, T, normalized):
         plt.clf()
         for regret in alg_cumulative_regrets:
             plt.plot(range(T), np.divide(regret, range(1, T+1)), alpha = 0.4, color= 'grey')
 
-
         plt.plot(range(T), np.divide(av_cum_regret, range(1, T+1)), alpha = 0.7, color='orange')
         plt.xlabel("Time")
-        plt.ylabel("Average Regret")
-        plt.title("Average regret as a function of time")
+        ylabel = "Normalized Average Regret" if normalized else "Average Regret"
+        plt.ylabel(ylabel)
+        title  = "Normalized average regret as a function of time" if normalized else "Average regret as a function of time"
+        plt.title(title)
         plt.savefig(output_dir + "/av_cumulative_regret.png")   
         np.save(output_dir + "/cumulative_regrets.npy", alg_cumulative_regrets)
 
-    def plot_algs_cum_regret(cumulative_regrets, alg_names, alg_types, output_dir, T, log_scaled=False):
+    def plot_algs_cum_regret(cumulative_regrets, alg_names, alg_types, output_dir, T, normalized, log_scaled=False):
         fname = "av_cumulative_regret_comparison.png" if not log_scaled else "av_cumulative_regret_comparison_log.png"
         plt.clf()
         palette = sns.color_palette()
@@ -80,13 +89,15 @@ class Plotter:
             plt.plot(range(T), np.mean(cumulative_regrets[type], axis = 0), alpha = 0.9, color= palette[i], label = alg_names[i])
 
         plt.xlabel("Time")
-        plt.ylabel("Cumulative Regret")
+        ylabel = "Normalized Cumulative Regret" if normalized else "Cumulative Regret"
+        plt.ylabel(ylabel)
         if log_scaled: plt.xscale('log')
         plt.legend()
-        plt.title("Cumulative regret as a function of time")
+        title  = "Normalized cumulative regret as a function of time" if normalized else "Cumulative regret as a function of time" 
+        plt.title(title)
         plt.savefig(output_dir + fname)
 
-    def plot_algs_avg_regret(cumulative_regrets, alg_names, alg_types, output_dir, T, log_scaled=False):
+    def plot_algs_avg_regret(cumulative_regrets, alg_names, alg_types, output_dir, T, normalized, log_scaled=False):
         fname = "av_average_regret_comparison.png" if not log_scaled else "av_average_regret_comparison_log.png"
         plt.clf()
         palette = sns.color_palette()
@@ -94,24 +105,40 @@ class Plotter:
             plt.plot(range(T), np.divide(np.mean(cumulative_regrets[type], axis = 0), range(1, T+1)), alpha = 0.9, color=palette[i], label = alg_names[i])
 
         plt.xlabel("Time")
-        plt.ylabel("Average Regret")
+        ylabel = "Normalized Average Regret" if normalized else "Average Regret"
+        plt.ylabel(ylabel)
         if log_scaled: plt.xscale('log')
         plt.legend()
-        plt.title("Average regret as a function of time")
+        title  = "Normalized average regret as a function of time" if normalized else "Average regret as a function of time"
+        plt.title(title)
         plt.savefig(output_dir + fname)
-
-    # To-Do: also plot cumulative regret for function types
-    
-    def plot_algs_avg_regret_ftypes(regret, function_types, type, name, T, output_dir):
-        fname = f"av_cumulative_regret_comparison_{type}"
+   
+    def plot_algs_avg_regret_ftypes(regret, function_types, type, alg_name, T, output_dir, normalized):
+        fname = f"av_average_regret_comparison_{type}"
         plt.clf()
         palette = sns.color_palette()
         for i, ftype in enumerate(function_types):
             plt.plot(range(T), np.divide(regret[ftype], range(1, T+1)), alpha = 0.9, color= palette[i], label=ftype)
 
+        plt.xlabel("Time")
+        ylabel = "Normalized Average Regret" if normalized else "Average Regret"
+        plt.ylabel(ylabel)
+        plt.legend()
+        title  = f"Normalized average regret for algorithm {alg_name}" if normalized else f"Average regret for algorithm {name}"
+        plt.title(title)
+        plt.savefig(output_dir + fname)
+
+    def plot_algs_cum_regret_ftypes(regret, function_types, type, alg_name, T, output_dir, normalized):
+        fname = f"av_cumulative_regret_comparison_{type}"
+        plt.clf()
+        palette = sns.color_palette()
+        for i, ftype in enumerate(function_types):
+            plt.plot(range(T), regret[ftype], alpha = 0.9, color= palette[i], label=ftype)
 
         plt.xlabel("Time")
-        plt.ylabel("Average Regret")
+        ylabel = "Normalized Cumulative Regret" if normalized else "Cumulative Regret"
+        plt.ylabel(ylabel)
         plt.legend()
-        plt.title(f"Average regret for Algorithm {name}")
+        title  = f"Normalized cumulative regret for algorithm {alg_name}" if normalized else f"Cumulative regret for algorithm {name}"
+        plt.title(title)
         plt.savefig(output_dir + fname)
