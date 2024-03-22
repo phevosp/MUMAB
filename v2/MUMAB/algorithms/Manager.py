@@ -58,7 +58,6 @@ class Manager():
         print(f"Maximum Per Turn: {max_per_turn}, \nMinimum Per Turn: {min_per_turn}, \nMax Regret: {max_regret}")
         for n in self.G.nodes():
             print(self.G.nodes[n]['arm'])
-        assert(False)
 
         # Run algorithm num_times for each algorithmic type (min, median, max)
         for name, type in zip(self.params.alg_names, self.params.alg_types):
