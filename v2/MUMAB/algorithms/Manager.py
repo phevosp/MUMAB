@@ -15,6 +15,8 @@ class Manager():
         self.T = params.T
     
     def evaluate_type(self, max_per_turn, alg_type, alg_name, output_dir):
+        # Goal: Given an algorithm instance and a graph, evaluate the algorithm on the graph for num_trials trials
+        # Note: max_per_turn is the maximum reward possible per-turn.
         self.cumulative_regrets[alg_type] = []
         mab_alg = getMAB(alg_type, self.G, self.params) 
 
@@ -47,24 +49,29 @@ class Manager():
         return np.mean(self.cumulative_regrets[alg_type], axis = 0)
 
     def evaluate_algs(self, output_dir, regret, ftype):
+        # Goal: Evaluate all algorithms for a particular function type
+
         # Get theoretical max_per_turn
         _, max_per_turn = optimal_distribution([self.G.nodes[node]['arm'] for node in self.G.nodes()], self.params.M, theoretical = True)
+        
         # Run algorithm num_times for each algorithmic type (min, median, max)
         for name, type in zip(self.params.alg_names, self.params.alg_types):
-            # initialize for first time
+            # Initialize sub-dictoinary the first time called on a particular algorithm type 
             if not type in regret: regret[type] = {}
 
+            # Call evaluate_type on specific algorithm
             regret[type][ftype] = self.evaluate_type(max_per_turn, type, name, output_dir)
             output_dir_type = f"{output_dir}{type}"
             plt.plot_cumulative_regret_total(self.cumulative_regrets[type], regret[type][ftype], output_dir_type, self.T)
             plt.plot_average_regret_total(self.cumulative_regrets[type], regret[type][ftype], output_dir_type, self.T)
 
-        plt.plot_algs_mean_regret(self.cumulative_regrets, self.params.alg_names, self.params.alg_types, output_dir, self.T)
-        plt.plot_algs_mean_regret(self.cumulative_regrets, self.params.alg_names, self.params.alg_types, output_dir, self.T, log_scaled=True)
+        plt.plot_algs_cum_regret(self.cumulative_regrets, self.params.alg_names, self.params.alg_types, output_dir, self.T)
+        plt.plot_algs_cum_regret(self.cumulative_regrets, self.params.alg_names, self.params.alg_types, output_dir, self.T, log_scaled=True)
         plt.plot_algs_avg_regret(self.cumulative_regrets, self.params.alg_names, self.params.alg_types, output_dir, self.T)
         plt.plot_algs_avg_regret(self.cumulative_regrets, self.params.alg_names, self.params.alg_types, output_dir, self.T, log_scaled=True)
         return regret
     
 def plot_function_regrets(params, regret):
     for alg_name, alg_type in zip(params.alg_names, params.alg_types):
+        # to-do: add cumulative regret
         plt.plot_algs_avg_regret_ftypes(regret[alg_type], params.function_types, alg_type, alg_name, params.T, params.output_dir)

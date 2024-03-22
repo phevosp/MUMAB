@@ -17,7 +17,7 @@ import gurobipy as gp
 import MUMAB.objects as mobj
 from MUMAB.algorithms.Manager import Manager, plot_function_regrets
 
-
+# Dictionary of implemented algorithms
 alg_names = {
     'indv' : "Multi-G-UCB",
     'median' : "G-combUCB-median",
@@ -38,10 +38,12 @@ def load_params():
     parser.add_argument('options', default=None, nargs=argparse.REMAINDER)
     params = parser.parse_args()
 
+    # Generate default output directory
     if params.output_dirs is None:
         params.output_dir = f"output/{params.T}-{params.K}-{params.M}/"
         params.output_dirs = [f"{params.output_dir}{func}/" for func in params.function_types]
 
+    # Create directories
     for dir in params.output_dirs:
         try:
             os.makedirs(dir)
@@ -54,6 +56,8 @@ def load_params():
 
 
 def initialize_graph(params):
+    # To-do: Potentially, extend to different graph initializations 
+    # Generate graph based on number of arms and probabilities
     G = nx.erdos_renyi_graph(params.K, params.p, seed = 0)
     tries = 0
     while not nx.is_connected(G) and tries < 10:

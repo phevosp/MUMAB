@@ -53,7 +53,7 @@ class Plotter:
         plt.savefig(output_dir + "/av_cumulative_regret.png")   
         np.save(output_dir + "/cumulative_regrets.npy", alg_cumulative_regrets)
 
-    def plot_algs_mean_regret(cumulative_regrets, alg_names, alg_types, output_dir, T, log_scaled=False):
+    def plot_algs_cum_regret(cumulative_regrets, alg_names, alg_types, output_dir, T, log_scaled=False):
         fname = "av_cumulative_regret_comparison.png" if not log_scaled else "av_cumulative_regret_comparison_log.png"
         plt.clf()
         palette = sns.color_palette()
@@ -80,6 +80,8 @@ class Plotter:
         plt.legend()
         plt.title("Average regret as a function of time")
         plt.savefig(output_dir + fname)
+
+    # To-Do: also plot cumulative regret for function types
     
     def plot_algs_avg_regret_ftypes(regret, function_types, type, name, T, output_dir):
         fname = f"av_cumulative_regret_comparison_{type}"

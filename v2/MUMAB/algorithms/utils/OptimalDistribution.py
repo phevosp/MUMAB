@@ -1,6 +1,7 @@
 import gurobipy as gp
 
 def optimal_distribution(arm_list, M, theoretical = False):
+    # To-Do: Add debug parameter which outputs lp and output flag is 1
     ### DOUBLE CHECK THE CHANGE TO THE F FUNCTIONS
     """
         Calculates the optimal distribution of agents over the arms.
@@ -10,7 +11,6 @@ def optimal_distribution(arm_list, M, theoretical = False):
     m = gp.Model("mip1")
     m.setParam('OutputFlag', 0)
     store_vars = {}
-    # This is the number of agents selecting each arm
     for arm in arm_list:
         store_vars = arm.interaction.add_constraints(m, store_vars)
 
