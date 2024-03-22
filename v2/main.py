@@ -81,6 +81,7 @@ def main():
     params = load_params()
 
     G_ = initialize_graph(params)
+    params.graph_diameter = nx.diameter(G_)
 
     regret_results = {}
     for output_dir, ftype in zip(params.output_dirs, params.function_types):
