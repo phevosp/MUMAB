@@ -14,9 +14,10 @@ class Manager():
         self.cumulative_regrets = {}
         self.T = params.T
     
-    def evaluate_type(self, max_per_turn, alg_type, alg_name, output_dir):
+    def evaluate_type(self, max_reward_per_turn, max_regret_per_turn, alg_type, alg_name, output_dir):
         # Goal: Given an algorithm instance and a graph, evaluate the algorithm on the graph for num_trials trials
         # Note: max_per_turn is the maximum reward possible per-turn.
+        # Note: max_regret is the maximum regret possible per-turn.
         self.cumulative_regrets[alg_type] = []
         mab_alg = getMAB(alg_type, self.G, self.params) 
 
@@ -31,53 +32,55 @@ class Manager():
             f = open(f"{trial_output_dir}/results.txt", "w")
             reward_per_turn, curr_time, transition_intervals = mab_alg.run(f)
  
-            # print('Total Time: ' + str(curr_time))
             f.write('\n----------------------------------------------------\n')
             f.write('Total Time: ' + str(curr_time))
             f.write("\nNet Reward: " + str(sum(reward_per_turn)))
-            f.write("\nTheoretical Expected Max: " + str(self.T * max_per_turn))
+            f.write("\nTheoretical Expected Max: " + str(self.T * max_reward_per_turn))
             f.write("\n")
             f.close()
 
             # Calculate regret
-            cum_regret = np.subtract([max_per_turn * i for i in range(1, self.T+1)], np.cumsum(reward_per_turn))
+            cum_regret = np.subtract([max_reward_per_turn * i for i in range(1, self.T+1)], np.cumsum(reward_per_turn))
+            # If normalized, divide the cumulative regret by the max_regret_per_turn
+            if self.params.normalized:
+                cum_regret = np.divide(cum_regret, max_regret_per_turn)
             self.cumulative_regrets[alg_type].append(cum_regret)
 
-            plt.plot_cumulative_reward(reward_per_turn, max_per_turn, trial_output_dir, self.T)
-            plt.plot_cumulative_regret(reward_per_turn, max_per_turn, transition_intervals, trial_output_dir, self.T)
-            plt.plot_average_regret(reward_per_turn, max_per_turn, trial_output_dir, self.T)    
-            plt.plot_transition_regret_per_episode_cost(reward_per_turn, max_per_turn, transition_intervals, trial_output_dir, self.T)        
+            plt.plot_cumulative_reward(reward_per_turn, max_reward_per_turn, trial_output_dir, self.T, self.params.normalized)
+            plt.plot_cumulative_regret(reward_per_turn, max_reward_per_turn, transition_intervals, trial_output_dir, self.T, self.params.normalized)
+            plt.plot_average_regret(reward_per_turn, max_reward_per_turn, trial_output_dir, self.T, self.params.normalized)    
+            plt.plot_transition_regret_per_episode_cost(reward_per_turn, max_reward_per_turn, transition_intervals, trial_output_dir, self.T)        
         return np.mean(self.cumulative_regrets[alg_type], axis = 0)
 
     def evaluate_algs(self, output_dir, regret, ftype):
         # Goal: Evaluate all algorithms for a particular function type
 
         # Get theoretical max_per_turn and calculate max regret
-        _, max_per_turn = optimal_distribution([self.G.nodes[node]['arm'] for node in self.G.nodes()], self.params, theoretical = True, minimize=False, debug=True, output_dir = output_dir)
-        _, min_per_turn = optimal_distribution([self.G.nodes[node]['arm'] for node in self.G.nodes()], self.params, theoretical = True, minimize=True, debug=True, output_dir = output_dir)
-        max_regret = max_per_turn - min_per_turn
-        print(f"Maximum Per Turn: {max_per_turn}, \nMinimum Per Turn: {min_per_turn}, \nMax Regret: {max_regret}")
+        _, max_reward_per_turn = optimal_distribution([self.G.nodes[node]['arm'] for node in self.G.nodes()], self.params, theoretical = True, minimize=False, debug=True, output_dir = output_dir)
+        _, min_reward_per_turn = optimal_distribution([self.G.nodes[node]['arm'] for node in self.G.nodes()], self.params, theoretical = True, minimize=True, debug=True, output_dir = output_dir)
+        max_regret_per_turn = max_reward_per_turn - min_reward_per_turn
+        print(f"Maximum Per Turn: {max_reward_per_turn}, \nMinimum Per Turn: {min_reward_per_turn}, \nMax Regret: {max_regret_per_turn}")
         for n in self.G.nodes():
             print(self.G.nodes[n]['arm'])
 
         # Run algorithm num_times for each algorithmic type (min, median, max)
         for name, type in zip(self.params.alg_names, self.params.alg_types):
-            # Initialize sub-dictoinary the first time called on a particular algorithm type 
+            # Initialize sub-dictionary the first time called on a particular algorithm type 
             if not type in regret: regret[type] = {}
 
             # Call evaluate_type on specific algorithm
-            regret[type][ftype] = self.evaluate_type(max_per_turn, type, name, output_dir)
+            regret[type][ftype] = self.evaluate_type(max_reward_per_turn, max_regret_per_turn, type, name, output_dir)
             output_dir_type = f"{output_dir}{type}"
-            plt.plot_cumulative_regret_total(self.cumulative_regrets[type], regret[type][ftype], output_dir_type, self.T)
-            plt.plot_average_regret_total(self.cumulative_regrets[type], regret[type][ftype], output_dir_type, self.T)
+            plt.plot_cumulative_regret_total(self.cumulative_regrets[type], regret[type][ftype], output_dir_type, self.T, self.params.normalized)
+            plt.plot_average_regret_total(self.cumulative_regrets[type], regret[type][ftype], output_dir_type, self.T, self.params.normalized)
 
-        plt.plot_algs_cum_regret(self.cumulative_regrets, self.params.alg_names, self.params.alg_types, output_dir, self.T)
-        plt.plot_algs_cum_regret(self.cumulative_regrets, self.params.alg_names, self.params.alg_types, output_dir, self.T, log_scaled=True)
-        plt.plot_algs_avg_regret(self.cumulative_regrets, self.params.alg_names, self.params.alg_types, output_dir, self.T)
-        plt.plot_algs_avg_regret(self.cumulative_regrets, self.params.alg_names, self.params.alg_types, output_dir, self.T, log_scaled=True)
+        plt.plot_algs_cum_regret(self.cumulative_regrets, self.params.alg_names, self.params.alg_types, output_dir, self.T, self.params.normalized)
+        plt.plot_algs_cum_regret(self.cumulative_regrets, self.params.alg_names, self.params.alg_types, output_dir, self.T, self.params.normalized, log_scaled=True)
+        plt.plot_algs_avg_regret(self.cumulative_regrets, self.params.alg_names, self.params.alg_types, output_dir, self.T, self.params.normalized)
+        plt.plot_algs_avg_regret(self.cumulative_regrets, self.params.alg_names, self.params.alg_types, output_dir, self.T, self.params.normalized, log_scaled=True)
         return regret
     
 def plot_function_regrets(params, regret):
     for alg_name, alg_type in zip(params.alg_names, params.alg_types):
         # to-do: add cumulative regret
-        plt.plot_algs_avg_regret_ftypes(regret[alg_type], params.function_types, alg_type, alg_name, params.T, params.output_dir)
+        plt.plot_algs_avg_regret_ftypes(regret[alg_type], params.function_types, alg_type, alg_name, params.T, params.output_dir, params.normalized)
