@@ -51,9 +51,11 @@ class Manager():
     def evaluate_algs(self, output_dir, regret, ftype):
         # Goal: Evaluate all algorithms for a particular function type
 
-        # Get theoretical max_per_turn
-        _, max_per_turn = optimal_distribution([self.G.nodes[node]['arm'] for node in self.G.nodes()], self.params.M, theoretical = True)
-        
+        # Get theoretical max_per_turn and calculate max regret
+        _, max_per_turn = optimal_distribution([self.G.nodes[node]['arm'] for node in self.G.nodes()], self.params.M, theoretical = True, minimize=False, debug=True)
+        _, min_per_turn = optimal_distribution([self.G.nodes[node]['arm'] for node in self.G.nodes()], self.params.M, theoretical = True, minimize=True, debug=True)
+        max_regret = max_per_turn - min_per_turn
+
         # Run algorithm num_times for each algorithmic type (min, median, max)
         for name, type in zip(self.params.alg_names, self.params.alg_types):
             # Initialize sub-dictoinary the first time called on a particular algorithm type 
