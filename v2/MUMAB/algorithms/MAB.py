@@ -22,6 +22,7 @@ from .utils.OptimalDistribution import optimal_distribution
 class MAB:
     def __init__(self, type, G, params):
         self.type = type
+        self.params = params
         self.G = G
         self.T = params.T
         self.K = params.K
@@ -100,7 +101,7 @@ class MAB:
         rew_per_turn = []
 
         # Compute optimal distribution
-        distribution, _ = optimal_distribution([self.G.nodes[node]['arm'] for node in self.G], self.M)
+        distribution, _ = optimal_distribution([self.G.nodes[node]['arm'] for node in self.G], self.params)
 
         # Create list of sampled nodes
         # If a node is to be sampled n times then it appears n times in the list
