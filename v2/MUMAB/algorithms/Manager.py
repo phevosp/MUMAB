@@ -55,6 +55,8 @@ class Manager():
         _, max_per_turn = optimal_distribution([self.G.nodes[node]['arm'] for node in self.G.nodes()], self.params.M, theoretical = True, minimize=False, debug=True)
         _, min_per_turn = optimal_distribution([self.G.nodes[node]['arm'] for node in self.G.nodes()], self.params.M, theoretical = True, minimize=True, debug=True)
         max_regret = max_per_turn - min_per_turn
+        print(f"Maximum Per Turn: {max_per_turn}, \nMinimum Per Turn: {min_per_turn}, \nMax Regret: {max_regret}")
+        assert(False)
 
         # Run algorithm num_times for each algorithmic type (min, median, max)
         for name, type in zip(self.params.alg_names, self.params.alg_types):

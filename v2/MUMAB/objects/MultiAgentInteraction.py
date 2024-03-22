@@ -79,7 +79,7 @@ class ConstantMultiAgentInteraction(MultiAgentInteractionInterface):
         store_vars[f"f(x_{self.arm_id})"] = m.addVar(vtype = gp.GRB.CONTINUOUS, name = f"f(x_{self.arm_id})")
 
         # Indicator of x > 0
-        b = m.addVar(vtype=gp.GRB.BINARY, name=f"x_{self.arm_id} > 0")
+        b = m.addVar(vtype=gp.GRB.BINARY, name=f"x_{self.arm_id}>0")
        
         # Add constraints
         eps = 0.0001
@@ -87,16 +87,16 @@ class ConstantMultiAgentInteraction(MultiAgentInteractionInterface):
         # bigM_constr1:
         # If b = 0, this is non-binding
         # If b = 1, this means x >= 0.001 -> x >= 1 because x is an integer
-        m.addConstr(store_vars[f"x_{self.arm_id}"] >= eps - M * (1 - b), name="bigM_constr1")
+        m.addConstr(store_vars[f"x_{self.arm_id}"] >= eps - M * (1 - b), name=f"constr_x_{self.arm_id}_b=1")
         # bigM_constr2:
         # If b = 0, x <= 0, so x = 0
         # If b = 1, this is non-binding
-        m.addConstr(store_vars[f"x_{self.arm_id}"] <= M * b, name="bigM_constr2")
+        m.addConstr(store_vars[f"x_{self.arm_id}"] <= M * b, name=f"constr_x_{self.arm_id}_b=0")
 
         # If b == 1, then constrain f(x) == 1
         # If b == 0, then constrain f(x) == x == 0
-        m.addConstr((b == 1) >> (store_vars[f"f(x_{self.arm_id})"] == 1), name = f"constr_x_{self.arm_id}_case_1")
-        m.addConstr((b == 0) >> (store_vars[f"f(x_{self.arm_id})"] == store_vars[f"x_{self.arm_id}"]), name = f"constr_x_{self.arm_id}_case_2")
+        m.addConstr((b == 1) >> (store_vars[f"f(x_{self.arm_id})"] == 1), name = f"constr_f(x_{self.arm_id})_b=1")
+        m.addConstr((b == 0) >> (store_vars[f"f(x_{self.arm_id})"] == store_vars[f"x_{self.arm_id}"]), name = f"constr_f(x_{self.arm_id})_b=0")
 
         return store_vars
 
@@ -106,13 +106,15 @@ class MuchMoreConcaveMultiAgentInteraction(ConcaveMultiAgentInteraction):
     def __init__(self, id, M, log_base_shift = 98):
         # Call concave, but shift log base by log_base_shift
         super().__init__(id, M)
-        super().log_base = log_base_shift + super().id
+        # Re-define log base to log base + shift
+        self.log_base += log_base_shift
 
     def function(self, x):
         super().function(x)
 
     def add_constraints(self, m, store_vars):
         super().add_constraints(m, store_vars)
+
 class CollisionMultiAgentInteraction(MultiAgentInteractionInterface):
     def __init__(self, id, M):
         self.arm_id    :int = id
@@ -127,7 +129,7 @@ class CollisionMultiAgentInteraction(MultiAgentInteractionInterface):
         # This is f(c)
         store_vars[f"f(x_{self.arm_id})"] = m.addVar(vtype = gp.GRB.CONTINUOUS, name = f"f(x_{self.arm_id})")
         # Indicator x > 1
-        b = m.addVar(vtype=gp.GRB.BINARY, name=f"x_{self.arm_id} > 1")
+        b = m.addVar(vtype=gp.GRB.BINARY, name=f"x_{self.arm_id}>1")
         # Constants
 
         # M is chosen to be as small as possible given the bounds on x and y
@@ -135,14 +137,14 @@ class CollisionMultiAgentInteraction(MultiAgentInteractionInterface):
         M = self.M + eps
         # If b = 1, x > 1 (so x >= 2)
         # If b = 0, this is non-binding
-        m.addConstr(store_vars[f"x_{self.arm_id}"] >= 1 + eps - M * (1 - b), name="bigM_constr1")
+        m.addConstr(store_vars[f"x_{self.arm_id}"] >= 1 + eps - M * (1 - b), name=f"constr_x_{self.arm_id}_b=1")
         # If b = 0, then x <= 1
         # If b = 1, then this is non-binding
-        m.addConstr(store_vars[f"x_{self.arm_id}"] <= 1 + M * b, name="bigM_constr2")
+        m.addConstr(store_vars[f"x_{self.arm_id}"] <= 1 + M * b, name=f"constr_x_{self.arm_id}_b=0")
         
         # Add constraints
-        m.addConstr((b == 1) >> (store_vars[f"f(x_{self.arm_id})"] == 0), name = f"constr_x_{self.arm_id}_case_1")
-        m.addConstr((b == 0) >> (store_vars[f"f(x_{self.arm_id})"] == store_vars[f"x_{self.arm_id}"]), name = f"constr_x_{self.arm_id}_case_2")
+        m.addConstr((b == 1) >> (store_vars[f"f(x_{self.arm_id})"] == 0), name = f"constr_f(x_{self.arm_id})_b=1")
+        m.addConstr((b == 0) >> (store_vars[f"f(x_{self.arm_id})"] == store_vars[f"x_{self.arm_id}"]), name = f"constr_f(x_{self.arm_id})_b=0")
         return store_vars
 
 
