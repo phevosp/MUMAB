@@ -32,10 +32,13 @@ def load_params():
     parser.add_argument('--M', type=int, default=5)
     parser.add_argument('--p', type=float, default=0.05)
     parser.add_argument('--num_trials', type=int, default=10)    
+    parser.add_argument('--arm_reward_min', type=int, default=0.25)
+    parser.add_argument('--arm_reward_range', type=int, default=0.5)
     parser.add_argument('--function_types', nargs='+', default = ['concave'], choices=['concave', 'collision', 'more_concave', 'linear', 'constant'])
     parser.add_argument('--output_dirs', nargs= '+')
     parser.add_argument('--alg_types', nargs='+', default=['original'], choices=list(alg_names.keys()))
     parser.add_argument('--normalized', type=bool, default=False)
+    parser.add_argument('--arm_distribution_output', type=bool, default=False)
     parser.add_argument('options', default=None, nargs=argparse.REMAINDER)
     params = parser.parse_args()
 
@@ -71,12 +74,17 @@ def initialize_graph(params):
 def setup_graph_interaction(G, function_type, params):
     # Assign each vertex an associated arm
     for i in G:
-        G.nodes[i]['arm'] = mobj.Arm(i, mobj.MultiAgentInteraction.getFunction(i, function_type, params))
+        G.nodes[i]['arm'] = mobj.Arm(i, params.arm_reward_min, params.arm_reward_range, mobj.MultiAgentInteraction.getFunction(i, function_type, params))
         G.nodes[i]['id']  = i
         G.nodes[i]['prev_node'] = G.nodes[i]
 
-    return G
 
+def arm_distribution_output(G):
+    means = np.array([G.nodes[i]['arm'].get_true_mean() for i in G])
+    print(f'Maximum Arm Reward Mean is {np.max(means)}')
+    print(f'Minimum Arm Reward Mean is {np.min(means)}')
+    print(f'Median Arm Reward Mean is {np.median(means)}')  
+    print(f'Mean Arm Reward Mean is {np.mean(means)}')    
 
 def main():
     params = load_params()
@@ -89,6 +97,9 @@ def main():
         print(f'================================================================================Evaluating {ftype} Performance ================================================================================')
         G = G_.copy()
         setup_graph_interaction(G, ftype, params)
+
+        if params.arm_distribution_output: arm_distribution_output(G)
+
         manager = Manager(params, G)
         regret_results = manager.evaluate_algs(output_dir, regret_results, ftype)
 

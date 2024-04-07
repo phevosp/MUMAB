@@ -49,19 +49,17 @@ class Manager():
             plt.plot_cumulative_reward(reward_per_turn, max_reward_per_turn, trial_output_dir, self.T, self.params.normalized)
             plt.plot_cumulative_regret(reward_per_turn, max_reward_per_turn, transition_intervals, trial_output_dir, self.T, self.params.normalized)
             plt.plot_average_regret(reward_per_turn, max_reward_per_turn, trial_output_dir, self.T, self.params.normalized)    
-            plt.plot_transition_regret_per_episode_cost(reward_per_turn, max_reward_per_turn, transition_intervals, trial_output_dir, self.T)        
+            plt.plot_transition_regret_per_episode_cost(reward_per_turn, max_reward_per_turn, transition_intervals, trial_output_dir, self.params.graph_diameter, self.T)        
         return np.mean(self.cumulative_regrets[alg_type], axis = 0)
 
-    def evaluate_algs(self, output_dir, regret, ftype):
+    def evaluate_algs(self, output_dir, regret, ftype, debug=False):
         # Goal: Evaluate all algorithms for a particular function type
 
         # Get theoretical max_per_turn and calculate max regret
-        _, max_reward_per_turn = optimal_distribution([self.G.nodes[node]['arm'] for node in self.G.nodes()], self.params, theoretical = True, minimize=False, debug=True, output_dir = output_dir)
-        _, min_reward_per_turn = optimal_distribution([self.G.nodes[node]['arm'] for node in self.G.nodes()], self.params, theoretical = True, minimize=True, debug=True, output_dir = output_dir)
+        _, max_reward_per_turn = optimal_distribution([self.G.nodes[node]['arm'] for node in self.G.nodes()], self.params, theoretical = True, minimize=False, debug=debug, output_dir = output_dir)
+        _, min_reward_per_turn = optimal_distribution([self.G.nodes[node]['arm'] for node in self.G.nodes()], self.params, theoretical = True, minimize=True, debug=debug, output_dir = output_dir)
         max_regret_per_turn = max_reward_per_turn - min_reward_per_turn
         print(f"Maximum Per Turn: {max_reward_per_turn}, \nMinimum Per Turn: {min_reward_per_turn}, \nMax Regret: {max_regret_per_turn}")
-        for n in self.G.nodes():
-            print(self.G.nodes[n]['arm'])
 
         # Run algorithm num_times for each algorithmic type (min, median, max)
         for name, type in zip(self.params.alg_names, self.params.alg_types):

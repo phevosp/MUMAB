@@ -33,7 +33,7 @@ class Plotter:
         save_name = "/normalized_cumulative_regret.png" if normalized else "/cumulative_regret.png"
         plt.savefig(output_dir + save_name)
 
-    def plot_transition_regret_per_episode_cost(reward_per_turn, max_per_turn, transition_interval, output_dir, T):
+    def plot_transition_regret_per_episode_cost(reward_per_turn, max_per_turn, transition_interval, output_dir, D, T):
             plt.clf()
             cum_regret = np.subtract([max_per_turn * i for i in range(1, T+1)], np.cumsum(reward_per_turn))
             transition_regret_per_epsisode = [cum_regret[interval[1]] - cum_regret[interval[0]] for interval in transition_interval]
@@ -41,7 +41,7 @@ class Plotter:
             plt.plot(episodes, transition_regret_per_epsisode)
             plt.xlabel("Episode")
             plt.ylabel("Regret Incurred")
-            plt.title("Transition Regret vs Epsiodes")
+            plt.title(f"Transition Regret vs Epsiodes with Graph Diameter {D}")
             plt.savefig(output_dir +  "/transition_regrets.png")
 
             

@@ -22,9 +22,9 @@ class Arm:
         pull:           updates the arm's attributes after simulating a pull of the arm
         reset:         resets the arm's attributes
     """
-    def __init__(self, id, interaction):
+    def __init__(self, id, reward_min, reward_range, interaction):
         self.id             :int   = id
-        self.true_mean      :float = random.random() * 0.5 + 0.25
+        self.true_mean      :float = random.random() * reward_range + reward_min
         self.num_pulls      :int   = 0
         self.total_reward   :int   = 0
         self.estimated_mean :int   = 0
@@ -35,6 +35,9 @@ class Arm:
     def get_reward(self):
         return np.random.normal(loc = self.true_mean, scale = 0.06)
     
+    def get_true_mean(self):
+        return self.true_mean
+
     def pull(self, time, num_agents):
         single_reward = self.get_reward()
         reward = self.interaction.function(num_agents) * single_reward
