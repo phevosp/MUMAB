@@ -13,7 +13,7 @@ class MultiAgentInteractionInterface(ABC):
     def add_constraints(self, m, store_vars, arm):
         pass
 
-class ConcaveMultiAgentInteraction(MultiAgentInteractionInterface):
+class LogMultiAgentInteraction(MultiAgentInteractionInterface):
     def __init__(self, id, M, alpha=0.05):
         self.arm_id    :int = id
         self.log_base  :int = 2 + (id%10)
@@ -100,7 +100,7 @@ class ConstantMultiAgentInteraction(MultiAgentInteractionInterface):
 
 
 
-class MuchMoreConcaveMultiAgentInteraction(ConcaveMultiAgentInteraction):
+class MuchMoreLogMultiAgentInteraction(LogMultiAgentInteraction):
     def __init__(self, id, M, log_base_shift = 98):
         # Call concave, but shift log base by log_base_shift
         super().__init__(id, M)
@@ -141,12 +141,12 @@ class CollisionMultiAgentInteraction(MultiAgentInteractionInterface):
 
 
 def getFunction(id, function_type, params):
-    if function_type == 'concave':
-        return ConcaveMultiAgentInteraction(id, params.M)
+    if function_type == 'log':
+        return LogMultiAgentInteraction(id, params.M)
     elif function_type == 'collision':
         return CollisionMultiAgentInteraction(id, params.M)
-    elif function_type == 'more_concave':
-        return MuchMoreConcaveMultiAgentInteraction(id, params.M)
+    elif function_type == 'more_log':
+        return MuchMoreLogMultiAgentInteraction(id, params.M)
     elif function_type == 'linear':
         return LinearMultiAgentInteraction(id, params.M)
     elif function_type == 'constant':

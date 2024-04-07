@@ -32,7 +32,7 @@ def load_params():
     parser.add_argument('--M', type=int, default=5)
     parser.add_argument('--p', type=float, default=0.05)
     parser.add_argument('--num_trials', type=int, default=10)    
-    parser.add_argument('--function_types', nargs='+', default = ['concave'], choices=['concave', 'collision', 'more_concave', 'linear', 'constant'])
+    parser.add_argument('--function_types', nargs='+', default = ['log'], choices=['log', 'collision', 'more_log', 'linear', 'constant'])
     parser.add_argument('--output_dirs', nargs= '+')
     parser.add_argument('--alg_types', nargs='+', default=['original'], choices=list(alg_names.keys()))
     parser.add_argument('--normalized', type=bool, default=False)
