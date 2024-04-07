@@ -1,1 +1,0 @@
-/home/anaveen/Documents/s2023_ws/apmth232/MUMAB/robot_ws/src/turtlebot3_multi_robot/launch/gazebo_multi_world.launch.py
