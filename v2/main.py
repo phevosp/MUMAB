@@ -32,12 +32,25 @@ def load_params():
     parser.add_argument('--M', type=int, default=5)
     parser.add_argument('--p', type=float, default=0.05)
     parser.add_argument('--num_trials', type=int, default=10)    
-    parser.add_argument('--function_types', nargs='+', default = ['log'], choices=['log', 'collision', 'more_log', 'linear', 'constant'])
+    parser.add_argument('--function_types', nargs='+', default = ['log'], choices=['log', 'collision', 'more_log', 'linear', 'constant', 'power'])
     parser.add_argument('--output_dirs', nargs= '+')
     parser.add_argument('--alg_types', nargs='+', default=['original'], choices=list(alg_names.keys()))
-    parser.add_argument('--normalized', type=bool, default=False)
+    parser.add_argument('--normalized', type=bool, default=True)
+    parser.add_argument('--numer', nargs='+', default=[1])
+    parser.add_argument('--denom', nargs='+', default=[2])
     parser.add_argument('options', default=None, nargs=argparse.REMAINDER)
     params = parser.parse_args()
+
+    # Create multiple power functions, one per numerator, denominator pair
+    if 'power' in params.function_types:
+        try:
+            assert(len(params.numer) == len(params.denom))
+        except:
+            raise ValueError("List of numerators and denominators must be of the same length")
+        
+        params.function_types.remove('power')
+        for numer, denom in zip(params.numer, params.denom):
+            params.function_types.append(f"power_{numer}_{denom}")
 
     # Generate default output directory
     if params.output_dirs is None:

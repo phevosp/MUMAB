@@ -140,6 +140,35 @@ class CollisionMultiAgentInteraction(MultiAgentInteractionInterface):
         return store_vars
 
 
+class PowerMultiAgentInteraction(MultiAgentInteractionInterface):
+    """
+        A MultiAgentInteractionInterface that implements the transformation function with numerator and denominator as specified by the user
+    """
+    def __init__(self, id, M, numer = 1, denom = 2):
+        try:
+            assert(numer >= 0 and denom >= 0)
+        except:
+            raise ValueError("Numerator must be non-negative and less than the denominator")
+        
+        self.arm_id    :int = id
+        self.M         :int = M
+        self.numer     :int = numer
+        self.denom     :int = denom
+
+    def function(self, x):
+        return x**(self.numer / self.denom)
+    
+    def add_constraints(self, m, store_vars):
+        # This is the number of agents selecting each arm (call it x)
+        store_vars[f"x_{self.arm_id}"]    = m.addVar(vtype = gp.GRB.INTEGER, lb = 0.0, ub = self.M, name = f"x_{self.arm_id}")
+        # This is f(c)
+        store_vars[f"f(x_{self.arm_id})"] = m.addVar(vtype = gp.GRB.CONTINUOUS, name = f"f(x_{self.arm_id})")
+
+        # Add constraint f(c) = c^(numer/denom)
+        m.addGenConstrPow(store_vars[f"x_{self.arm_id}"], store_vars[f"f(x_{self.arm_id})"], self.numer / self.denom, name = f"constr_x_{self.arm_id}")
+
+        return store_vars
+
 def getFunction(id, function_type, params):
     if function_type == 'log':
         return LogMultiAgentInteraction(id, params.M)
@@ -151,5 +180,8 @@ def getFunction(id, function_type, params):
         return LinearMultiAgentInteraction(id, params.M)
     elif function_type == 'constant':
         return ConstantMultiAgentInteraction(id, params.M)
+    elif function_type.startswith('power'):
+        numer, denom = [int(x) for x in function_type.split('_')[1:]]
+        return PowerMultiAgentInteraction(id, params.M, numer, denom)
     else:
         return None
