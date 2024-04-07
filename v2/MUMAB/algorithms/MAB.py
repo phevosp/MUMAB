@@ -179,7 +179,7 @@ class MAB:
         i = 0
 
         # determines transition time interval, starts at the current time and goes until the minimum of self.T or curr_time + max_path_length
-        trans_t = (curr_time, min(curr_time + max_path_length, self.T))
+        trans_t = (curr_time, min(curr_time + max_path_length, self.T-1))
 
         while i < max_path_length and curr_time < self.T:
             curr_time += 1
@@ -382,7 +382,7 @@ class MAB_indv:
         i = 0
 
         # determines transition time interval, starts at the current time and goes until the minimum of self.T or curr_time + max_path_length
-        trans_t = (curr_time, min(curr_time + max_path_length, self.T))
+        trans_t = (curr_time, min(curr_time + max_path_length, self.T-1))
 
         while i < max_path_length and curr_time < self.T:
             curr_time += 1
