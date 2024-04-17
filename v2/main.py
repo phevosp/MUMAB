@@ -19,10 +19,10 @@ from MUMAB.algorithms.Manager import Manager, plot_function_regrets
 
 # Dictionary of implemented algorithms
 alg_names = {
-    'indv' : "Multi-G-UCB",
-    'median' : "G-combUCB-median",
-    'max' : "G-combUCB-max",
-    'original' : "G-combUCB"
+    'indv' : "Indv-G-UCB",
+    'median' : "Multi-G-UCB-median",
+    'max' : "Multi-G-UCB-max",
+    'original' : "Multi-G-UCB"
 }
 
 def load_params():
