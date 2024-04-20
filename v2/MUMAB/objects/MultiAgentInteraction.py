@@ -25,13 +25,32 @@ class LogMultiAgentInteraction(MultiAgentInteractionInterface):
     
     def add_constraints(self, m, store_vars):
         # This is the number of agents selecting each arm (call it x)
-        store_vars[f"x_{self.arm_id}"]    = m.addVar(vtype = gp.GRB.INTEGER, lb = 0.0, ub = self.M, name = f"x_{self.arm_id}")
+        store_vars[f"x_{self.arm_id}"]    = m.addVar(vtype = gp.GRB.INTEGER, 
+                                                     lb = 0.0, 
+                                                     ub = self.M, 
+                                                     name = f"x_{self.arm_id}"
+                                                     )
+        
         # This is alpha*x_{} + 1/(log_base)
-        temp1                                = m.addVar(vtype = gp.GRB.CONTINUOUS, lb = 0.0, name = f"self.alpha*x_{self.arm_id}+1/(log_base)")
+        temp1                                = m.addVar(vtype = gp.GRB.CONTINUOUS, 
+                                                        lb = 1/self.log_base, 
+                                                        ub = self.M*self.alpha + 1/self.log_base, 
+                                                        name = f"self.alpha*x_{self.arm_id}+1/(log_base)"
+                                                        )
+        
         # This is np.emath.logn(log_base, alpha*x + 1/(log_base))
-        temp2                                = m.addVar(vtype = gp.GRB.CONTINUOUS, lb = -gp.GRB.INFINITY, name = f"(np.emath.logn(log_base,self.alpha*x_{self.arm_id}+1/(log_base)))")
+        temp2                                = m.addVar(vtype = gp.GRB.CONTINUOUS, 
+                                                        lb = -1, 
+                                                        ub = np.emath.logn(self.log_base, self.alpha*self.M + 1/(self.log_base)),
+                                                        name = f"(np.emath.logn(log_base,self.alpha*x_{self.arm_id}+1/(log_base)))"
+                                                        )
+        
         # This is f(x) = (np.emath.logn(log_base, alpha*x + 1/(log_base)) + 1) / (np.emath.logn(log_base, alpha + 1/(log_base)) + 1)
-        store_vars[f"f(x_{self.arm_id})"] = m.addVar(vtype = gp.GRB.CONTINUOUS, name = f"f(x_{self.arm_id})")
+        store_vars[f"f(x_{self.arm_id})"] = m.addVar(vtype = gp.GRB.CONTINUOUS, 
+                                                     lb = 0, 
+                                                     ub = (np.emath.logn(self.log_base, self.alpha*self.M + 1/(self.log_base)) + 1) / (np.emath.logn(self.log_base, self.alpha + 1/(self.log_base)) + 1),
+                                                     name = f"f(x_{self.arm_id})"
+                                                     )
 
 
         # Add constraints

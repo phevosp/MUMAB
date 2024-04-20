@@ -1,6 +1,7 @@
 from .utils.OptimalDistribution import optimal_distribution
 from .utils.Plotter import Plotter as plt
 from .MAB import MAB, getMAB
+from collections import Counter
 import os
 import sys
 
@@ -53,15 +54,38 @@ class Manager():
         return np.mean(self.cumulative_regrets[alg_type], axis = 0)
 
     def evaluate_algs(self, output_dir, regret, ftype):
+        
         # Goal: Evaluate all algorithms for a particular function type
-
-        # Get theoretical max_per_turn and calculate max regret
-        _, max_reward_per_turn = optimal_distribution([self.G.nodes[node]['arm'] for node in self.G.nodes()], self.params, theoretical = True, minimize=False, debug=True, output_dir = output_dir)
-        _, min_reward_per_turn = optimal_distribution([self.G.nodes[node]['arm'] for node in self.G.nodes()], self.params, theoretical = True, minimize=True, debug=True, output_dir = output_dir)
-        max_regret_per_turn = max_reward_per_turn - min_reward_per_turn
-        print(f"Maximum Per Turn: {max_reward_per_turn}, \nMinimum Per Turn: {min_reward_per_turn}, \nMax Regret: {max_regret_per_turn}")
         for n in self.G.nodes():
             print(self.G.nodes[n]['arm'])
+
+        # Get theoretical max_per_turn and calculate max regret
+        best_dist, _ = optimal_distribution([self.G.nodes[node]['arm'] for node in self.G.nodes()], self.params, theoretical = True, minimize=False, debug=True, output_dir = output_dir)
+        worst_dist, _ = optimal_distribution([self.G.nodes[node]['arm'] for node in self.G.nodes()], self.params, theoretical = True, minimize=True, debug=True, output_dir = output_dir)
+        
+        # Print best and worst distributions
+        for dist, name in zip([best_dist, worst_dist], ["Best", "Worst"]):
+            sampled_nodes = []
+            for node in self.G:
+                for _ in range(round(dist[f"x_{self.G.nodes[node]['arm'].id}"])):
+                    sampled_nodes.append(node)
+            
+            if name == "Best":
+                best_dict = Counter(sampled_nodes)
+            else:
+                worst_dict = Counter(sampled_nodes)
+            print(f"In {name} distribution, we sample nodes:", sampled_nodes)
+
+        # Given sampled nodes, calculate theoretical max and mins (using Gurobi reward was giving errors)
+
+        max_reward_per_turn, min_reward_per_turn = 0, 0
+        for key in best_dict:
+            max_reward_per_turn += self.G.nodes[key]['arm'].interaction.function(best_dict[key]) * self.G.nodes[key]['arm'].true_mean
+        for key in worst_dict:
+            min_reward_per_turn += self.G.nodes[key]['arm'].interaction.function(worst_dict[key]) * self.G.nodes[key]['arm'].true_mean
+
+        max_regret_per_turn = max_reward_per_turn - min_reward_per_turn
+        print(f"Maximum Per Turn: {max_reward_per_turn}, \nMinimum Per Turn: {min_reward_per_turn}, \nMax Regret: {max_regret_per_turn}")
 
         # Run algorithm num_times for each algorithmic type (min, median, max)
         for name, type in zip(self.params.alg_names, self.params.alg_types):

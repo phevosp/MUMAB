@@ -101,7 +101,7 @@ class MAB:
         rew_per_turn = []
 
         # Compute optimal distribution
-        distribution, _ = optimal_distribution([self.G.nodes[node]['arm'] for node in self.G], self.params)
+        distribution, _ = optimal_distribution([self.G.nodes[node]['arm'] for node in self.G], self.params)            
 
         # Create list of sampled nodes
         # If a node is to be sampled n times then it appears n times in the list
@@ -110,8 +110,7 @@ class MAB:
         for node in self.G:
             for times in range(round(distribution[f"x_{self.G.nodes[node]['arm'].id}"])):
                 sampled_nodes.append(node)
-        # f.write("Sampled Nodes: {}\n".format(sampled_nodes))
-        # print("Distribution:", distribution)
+
         # print("Sampled Nodes:", sampled_nodes)
 
         # Note number of pulls of baseline
