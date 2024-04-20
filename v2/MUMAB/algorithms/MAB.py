@@ -29,7 +29,28 @@ class MAB:
         self.M = params.M
 
 
+    def _step(self, arm_dict, arm_dict_agents, curr_time):
+        rew_this_turn = 0
+        for arm in arm_dict:
+            # Pull the arm
+            true_transformed_reward, true_single_reward = arm.pull(curr_time, arm_dict[arm])
+            # Add the reward to the rew_per_turn (this keeps track of regret)
+            rew_this_turn += true_transformed_reward
 
+            # Calculate the reward observed by agents
+            reward_observed = 0
+            for agent in arm_dict_agents[arm]:
+                reward_observed += agent.observation(true_single_reward)
+            
+            # And use it to update UCB value
+            arm.update_attributes(curr_time, reward_observed/arm_dict[arm])
+        return rew_this_turn
+    
+    def _step_individual(self, curr_time, agents, arm_dict):
+        rew_this_turn = 0
+        for arm in arm_dict:
+            rew_this_turn += arm.pull_individual(curr_time, agents, arm_dict[arm])
+        return rew_this_turn
 
     def initialize(self, agents):
         """
@@ -77,14 +98,7 @@ class MAB:
                 if not moved:    
                     agent.move(agent.current_node['prev_node'])
 
-            rew_per_turn.append(0)
-            for arm in arm_dict:
-                _, R = arm.pull(curr_time, arm_dict[arm])
-                R_observed = 0
-                for agent in arm_dict_agents[arm]:
-                    R_observed += agent.observation(R)
-
-                rew_per_turn[-1] += arm.interaction.function(arm_dict[arm])*(R_observed/arm_dict[arm])
+            rew_per_turn.append(self._step(arm_dict, arm_dict_agents, curr_time))
 
         # Sample current arms as well
         curr_time + 1
@@ -98,14 +112,7 @@ class MAB:
                 arm_dict_agents[agent.current_node['arm']].append(agent)
 
 
-        rew_per_turn.append(0)
-        for arm in arm_dict:
-            _, R = arm.pull(curr_time, arm_dict[arm])
-            R_observed = 0
-            for agent in arm_dict_agents[arm]:
-                R_observed += agent.observation(R)
-
-            rew_per_turn[-1] += arm.interaction.function(arm_dict[arm])*(R_observed/arm_dict[arm])
+        rew_per_turn.append(self._step(arm_dict, arm_dict_agents, curr_time))
 
         return curr_time, rew_per_turn 
     
@@ -223,15 +230,11 @@ class MAB:
                     arm_dict[agent.current_node['arm']] += 1
                     arm_dict_agents[agent.current_node['arm']].append(agent)
 
-            rew_per_turn.append(0)
-            for arm in arm_dict:
-                _, R = arm.pull(curr_time, arm_dict[arm])
-                R_observed = 0
-                for agent in arm_dict_agents[arm]:
-                    R_observed += agent.observation(R)
 
-                rew_per_turn[-1] += arm.interaction.function(arm_dict[arm])*(R_observed/arm_dict[arm])
-        
+            # arm_dict is number of agents on each arm
+            # arm_dict_agents is the agents at each arm
+            rew_per_turn.append(self._step(arm_dict, arm_dict_agents, curr_time))
+                
         # We update arm_dict
         arm_dict = {}
 
@@ -252,14 +255,7 @@ class MAB:
 
         while self.G.nodes[baseline_arm]['arm'].num_pulls < 2 * baseline_pulls and curr_time < self.T:
             curr_time += 1
-            rew_per_turn.append(0)
-            for arm in arm_dict:
-                _, R = arm.pull(curr_time, arm_dict[arm])
-                R_observed = 0
-                for agent in arm_dict_agents[arm]:
-                    R_observed += agent.observation(R)
-
-                rew_per_turn[-1] += arm.interaction.function(arm_dict[arm])*(R_observed/arm_dict[arm])
+            rew_per_turn.append(self._step(arm_dict, arm_dict_agents, curr_time))
 
         return curr_time, rew_per_turn, trans_t
     
@@ -360,10 +356,7 @@ class MAB_indv:
                     prev_node_id = prev_nodes[agent.id][agent.current_node['id']]
                     agent.move(self.G.nodes[prev_node_id])
 
-            rew_per_turn.append(0)
-            for arm in arm_dict:
-                rew_per_turn[-1] += arm.pull_individual(curr_time, agents, arm_dict[arm])
-
+            rew_per_turn.append(self._step_indvidual(curr_time, agents, arm_dict))
         
         # Sample current arms as well
         for agent in agents:
@@ -372,9 +365,7 @@ class MAB_indv:
             else:
                 arm_dict[agent.current_node['arm']].append(agent.id)
 
-        rew_per_turn.append(0)
-        for arm in arm_dict:
-            rew_per_turn[-1] += arm.pull_individual(curr_time, agents, arm_dict[arm])
+        rew_per_turn.append(self._step_indvidual(curr_time, agents, arm_dict))
 
         # Double check all vertices have been visited
         for agent in agents:
@@ -441,9 +432,7 @@ class MAB_indv:
                 if i < len(paths[agent.id]):
                     agent.move(self.G.nodes[paths[agent.id][i]])
 
-            rew_per_turn.append(0)
-            for arm in arm_dict:
-                rew_per_turn[-1] += arm.pull_individual(curr_time, agents, arm_dict[arm])
+            rew_per_turn.append(self._step_indvidual(curr_time, agents, arm_dict))
 
         # We update arm_dict
         arm_dict = {}
@@ -460,9 +449,7 @@ class MAB_indv:
 
         while baseline_agent.num_pulls_dict[baseline_arm] < 2 * baseline_pulls and curr_time < self.T:
             curr_time += 1
-            rew_per_turn.append(0)
-            for arm in arm_dict:
-                rew_per_turn[-1] += arm.pull_individual(curr_time, agents, arm_dict[arm])
+            rew_per_turn.append(self._step_indvidual(curr_time, agents, arm_dict))
 
         return curr_time, rew_per_turn, trans_t
     

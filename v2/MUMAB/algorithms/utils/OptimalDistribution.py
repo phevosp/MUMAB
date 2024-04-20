@@ -17,7 +17,7 @@ def optimal_distribution(arm_list, params, theoretical=False, minimize=False, de
     m = gp.Model("mip1")
     output_flag = 1 if debug else 0
     m.setParam('OutputFlag', output_flag)
-    m.setParam('NumericFocus', 1)
+    m.setParam('NumericFocus', 0)
     store_vars = {}
     for arm in arm_list:
         store_vars = arm.interaction.add_constraints(m, store_vars)
