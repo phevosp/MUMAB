@@ -1,3 +1,5 @@
+from numpy.random import normal as nl
+
 class Agent:
     """
     Agent class for multi-armed bandit problem.
@@ -10,11 +12,12 @@ class Agent:
         estimated_mean_dict:  dict (arm_id : estimated_mean), dictionary of arms that the agent has pulled and the estimated mean of each arm
         conf_radius_dict:     dict (arm_id : conf_radius), dictionary of arms that the agent has pulled and the confidence radius of each arm
         ucb_dict:             dict (arm_id : ucb), dictionary of arms that the agent has pulled and the upper confidence bound of each arm
-
+        std_dev:              float, std_dev for sensor noise
+        bias:                 float, bias for sensor noise
     Methods:
         move:           moves the agent to the inputted node
     """
-    def __init__(self, id, node, G):
+    def __init__(self, id, node, G, std_dev, bias):
         # Agent attributes
         self.id           :int  = id
         self.current_node :dict = node
@@ -23,6 +26,11 @@ class Agent:
         self.estimated_mean_dict = {}
         self.conf_radius_dict    = {}
         self.ucb_dict            = {}
+        self.std_dev             = std_dev
+        self.bias                = bias            
 
     def move(self, new_node):
         self.current_node = new_node
+
+    def observation(self, true):
+        return nl(self.bias + true, self.std_dev, 1)

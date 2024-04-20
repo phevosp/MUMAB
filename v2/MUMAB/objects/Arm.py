@@ -33,7 +33,7 @@ class Arm:
         self.interaction    : MultiAgentInteractionInterface = interaction
 
     def get_reward(self):
-        return np.random.normal(loc = self.true_mean, scale = 0.06)
+        return np.clip(np.random.normal(loc = self.true_mean, scale = 0.06), 0, 1)
     
     def pull(self, time, num_agents):
         single_reward = self.get_reward()
@@ -44,7 +44,7 @@ class Arm:
         self.conf_radius = np.sqrt(2 * np.log(time) / self.num_pulls)
         self.ucb = self.estimated_mean + self.conf_radius
 
-        return reward
+        return reward, single_reward
     
     def pull_individual(self, time, agents, agent_ids):
         single_reward = self.get_reward()
