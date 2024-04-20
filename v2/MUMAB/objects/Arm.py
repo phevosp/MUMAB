@@ -35,16 +35,20 @@ class Arm:
     def get_reward(self):
         return np.clip(np.random.normal(loc = self.true_mean, scale = 0.06), 0, 1)
     
-    def pull(self, time, num_agents):
+    def pull(self, num_agents):
         single_reward = self.get_reward()
         reward = self.interaction.function(num_agents) * single_reward
+
+        return reward, single_reward
+
+
+    def update_attributes(self, time, observed_reward):
         self.num_pulls += 1
-        self.total_reward += single_reward
+        self.total_reward += observed_reward
         self.estimated_mean = self.total_reward / self.num_pulls
         self.conf_radius = np.sqrt(2 * np.log(time) / self.num_pulls)
         self.ucb = self.estimated_mean + self.conf_radius
 
-        return reward, single_reward
     
     def pull_individual(self, time, agents, agent_ids):
         single_reward = self.get_reward()

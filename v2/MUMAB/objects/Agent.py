@@ -33,4 +33,4 @@ class Agent:
         self.current_node = new_node
 
     def observation(self, true):
-        return nl(self.bias + true, self.std_dev, 1)
+        return nl(self.bias + true, self.std_dev, 1)[0]

@@ -17,8 +17,8 @@ class Manager():
     
     def evaluate_type(self, max_reward_per_turn, max_regret_per_turn, alg_type, alg_name, output_dir):
         # Goal: Given an algorithm instance and a graph, evaluate the algorithm on the graph for num_trials trials
-        # Note: max_per_turn is the maximum reward possible per-turn.
-        # Note: max_regret is the maximum regret possible per-turn.
+        # Note: max_per_reward_turn is the maximum reward possible per-turn.
+        # Note: max_regret_per_turn is the maximum regret possible per-turn.
         self.cumulative_regrets[alg_type] = []
         mab_alg = getMAB(alg_type, self.G, self.params) 
 
