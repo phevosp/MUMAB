@@ -260,8 +260,6 @@ class MAB:
                 for agent in arm_dict_agents[arm]:
                     R_observed += agent.observation(R)
 
-                rew_per_turn[-1] += arm.interaction.function(arm_dict[arm])*(R_observed/arm_dict[arm])
-
         return curr_time, rew_per_turn, trans_t
     
     def run(self, f):
