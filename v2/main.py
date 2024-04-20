@@ -38,6 +38,8 @@ def load_params():
     parser.add_argument('--normalized', type=bool, default=True)
     parser.add_argument('--numer', nargs='+', default=[1])
     parser.add_argument('--denom', nargs='+', default=[2])
+    parser.add_argument('--agent_std_dev', nargs='+', type=float)
+    parser.add_argument('--agent_bias', nargs='+', type=float)
     parser.add_argument('options', default=None, nargs=argparse.REMAINDER)
     params = parser.parse_args()
 

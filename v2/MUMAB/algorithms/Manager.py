@@ -32,7 +32,6 @@ class Manager():
             # Open results file
             f = open(f"{trial_output_dir}/results.txt", "w")
             reward_per_turn, curr_time, transition_intervals = mab_alg.run(f)
- 
             f.write('\n----------------------------------------------------\n')
             f.write('Total Time: ' + str(curr_time))
             f.write("\nNet Reward: " + str(sum(reward_per_turn)))
@@ -41,7 +40,7 @@ class Manager():
             f.close()
 
             # Calculate regret
-            cum_regret = np.subtract([max_reward_per_turn * i for i in range(1, self.T+1)], np.cumsum(reward_per_turn))
+            cum_regret = np.subtract(np.array([max_reward_per_turn * i for i in range(1, self.T+1)]), np.cumsum(reward_per_turn))
             # If normalized, divide the cumulative regret by the max_regret_per_turn
             if self.params.normalized:
                 cum_regret = np.divide(cum_regret, max_regret_per_turn)

@@ -145,7 +145,6 @@ class MAB:
 
         baseline_pulls = self.G.nodes[baseline_arm]['arm'].num_pulls
         # f.write("Baseline Arm: {}\n".format(baseline_arm))
-        print(f"Baseline Arm: {baseline_arm}")
 
         # Note maximum ucb value for edge
         max_ucb = max([self.G.nodes[node]['arm'].ucb for node in sampled_nodes])
@@ -259,6 +258,8 @@ class MAB:
                 R_observed = 0
                 for agent in arm_dict_agents[arm]:
                     R_observed += agent.observation(R)
+
+                rew_per_turn[-1] += arm.interaction.function(arm_dict[arm])*(R_observed/arm_dict[arm])
 
         return curr_time, rew_per_turn, trans_t
     
