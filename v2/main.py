@@ -38,6 +38,8 @@ def load_params():
     parser.add_argument('--normalized', type=bool, default=True)
     parser.add_argument('--numer', nargs='+', default=[1])
     parser.add_argument('--denom', nargs='+', default=[2])
+    parser.add_argument('--agent_std_dev', nargs='+', type=float)
+    parser.add_argument('--agent_bias', nargs='+', type=float)
     parser.add_argument('options', default=None, nargs=argparse.REMAINDER)
     params = parser.parse_args()
 
@@ -64,6 +66,12 @@ def load_params():
             print(f"Directory {dir} created successfully.")
         except FileExistsError:
             pass
+
+    if params.agent_std_dev is None:
+        params.agent_std_dev = np.zeros(params.M, )
+    
+    if params.agent_bias is None:
+        params.agent_bias = np.zeros(params.M, )
 
     params.alg_names = [alg_names[type] for type in params.alg_types]
     return params

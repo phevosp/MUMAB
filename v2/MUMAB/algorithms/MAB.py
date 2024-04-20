@@ -30,6 +30,7 @@ class MAB:
 
 
 
+
     def initialize(self, agents):
         """
         Initializes the approximations for each vertex by having each agent run DFS until all the vertices are visited at least once.
@@ -47,12 +48,18 @@ class MAB:
             curr_time += 1
             # arm_dict will be the collection of arms that are visited at the current time
             arm_dict = {}
+
+            # the agents at the arm
+            arm_dict_agents = {}
+
             for agent in agents:
                 # Add current vertex to arm_dict
                 if agent.current_node['arm'] not in arm_dict:
                     arm_dict[agent.current_node['arm']] = 1
+                    arm_dict_agents[agent.current_node['arm']] = [agent]
                 else:
                     arm_dict[agent.current_node['arm']] += 1
+                    arm_dict_agents[agent.current_node['arm']].append(agent)
 
                 # Move to first neighbor that has not been visited
                 moved = False
@@ -72,7 +79,12 @@ class MAB:
 
             rew_per_turn.append(0)
             for arm in arm_dict:
-                rew_per_turn[-1] += arm.pull(curr_time, arm_dict[arm])
+                _, R = arm.pull(curr_time, arm_dict[arm])
+                R_observed = 0
+                for agent in arm_dict_agents[arm]:
+                    R_observed += agent.observation(R)
+
+                rew_per_turn[-1] += arm.interaction.function(arm_dict[arm])*(R_observed/arm_dict[arm])
 
         # Sample current arms as well
         curr_time + 1
@@ -80,12 +92,21 @@ class MAB:
             # Add current vertex to arm_dict
             if agent.current_node['arm'] not in arm_dict:
                 arm_dict[agent.current_node['arm']] = 1
+                arm_dict_agents[agent.current_node['arm']] = [agent]
             else:
                 arm_dict[agent.current_node['arm']] += 1
+                arm_dict_agents[agent.current_node['arm']].append(agent)
+
 
         rew_per_turn.append(0)
         for arm in arm_dict:
-            rew_per_turn[-1] += arm.pull(curr_time, arm_dict[arm])
+            _, R = arm.pull(curr_time, arm_dict[arm])
+            R_observed = 0
+            for agent in arm_dict_agents[arm]:
+                R_observed += agent.observation(R)
+
+            rew_per_turn[-1] += arm.interaction.function(arm_dict[arm])*(R_observed/arm_dict[arm])
+
         return curr_time, rew_per_turn 
     
     def episode(self, agents, curr_time):
@@ -185,6 +206,10 @@ class MAB:
             i += 1
             # arm_dict will be the set of arms that are visited at the current time
             arm_dict = {}
+
+            # the agents at the arm
+            arm_dict_agents = {}
+
             for agent in agents:
                 # If we have more path left, move to next node
                 if i < len(paths[agent.id]):
@@ -193,21 +218,33 @@ class MAB:
                 # Then add current vertex to arm_dict
                 if agent.current_node['arm'] not in arm_dict:
                     arm_dict[agent.current_node['arm']] = 1
+                    arm_dict_agents[agent.current_node['arm']] = [agent]
                 else:
                     arm_dict[agent.current_node['arm']] += 1
+                    arm_dict_agents[agent.current_node['arm']].append(agent)
 
             rew_per_turn.append(0)
             for arm in arm_dict:
-                rew_per_turn[-1] += arm.pull(curr_time, arm_dict[arm])
+                _, R = arm.pull(curr_time, arm_dict[arm])
+                R_observed = 0
+                for agent in arm_dict_agents[arm]:
+                    R_observed += agent.observation(R)
 
+                rew_per_turn[-1] += arm.interaction.function(arm_dict[arm])*(R_observed/arm_dict[arm])
+        
         # We update arm_dict
         arm_dict = {}
+
+        # the agents at the arm
+        arm_dict_agents = {}
         for agent in agents:
             # Add current vertex to arm_dict
             if agent.current_node['arm'] not in arm_dict:
                 arm_dict[agent.current_node['arm']] = 1
+                arm_dict_agents[agent.current_node['arm']] = [agent]
             else:
                 arm_dict[agent.current_node['arm']] += 1
+                arm_dict_agents[agent.current_node['arm']].append(agent)
 
         # We sample until num_pulls of baseline_arm doubles
         if self.G.nodes[baseline_arm]['arm'] not in arm_dict:
@@ -217,7 +254,12 @@ class MAB:
             curr_time += 1
             rew_per_turn.append(0)
             for arm in arm_dict:
-                rew_per_turn[-1] += arm.pull(curr_time, arm_dict[arm])
+                _, R = arm.pull(curr_time, arm_dict[arm])
+                R_observed = 0
+                for agent in arm_dict_agents[arm]:
+                    R_observed += agent.observation(R)
+
+                rew_per_turn[-1] += arm.interaction.function(arm_dict[arm])*(R_observed/arm_dict[arm])
 
         return curr_time, rew_per_turn, trans_t
     
@@ -227,7 +269,7 @@ class MAB:
             self.G.nodes[i]['arm'].reset()
 
         # Initialize agents and assign vertex
-        agents   = [Agent(i, self.G.nodes[random.randint(0, self.K-1)], self.G) for i in range(self.M)]
+        agents   = [Agent(i, self.G.nodes[random.randint(0, self.K-1)], self.G, self.params.agent_std_dev[i], self.params.agent_bias[i]) for i in range(self.M)]
 
         # Begin Algorithm
         # After the return from each function call, 
