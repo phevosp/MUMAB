@@ -44,8 +44,6 @@ class Plotter:
             plt.title("Transition Regret vs Epsiodes")
             plt.savefig(output_dir +  "/transition_regrets.png")
 
-            
-
     def plot_average_regret(reward_per_turn, max_per_turn, output_dir, T, normalized):
         plt.clf()
         plt.plot(range(T), np.divide(np.subtract([max_per_turn * i for i in range(1, T+1)], np.cumsum(reward_per_turn)), range(1, T+1)))
@@ -82,9 +80,9 @@ class Plotter:
         plt.ylabel(ylabel)
         title  = "Normalized average regret as a function of time" if normalized else "Average regret as a function of time"
         plt.title(title)
-        save_fig_name = "/normalized_av_cumulative_regret.png" if normalized else "/av_cumulative_regret.png"
+        save_fig_name = "/normalized_av_average_regret.png" if normalized else "/av_average_regret.png"
         plt.savefig(output_dir + save_fig_name)   
-        save_arr_name = "/normalized_cumulative_regret.npy" if normalized else "/cumulative_regret.npy"
+        save_arr_name = "/normalized_average_regret.npy" if normalized else "/average_regret.npy"
         np.save(output_dir + save_arr_name, alg_cumulative_regrets)
 
     def plot_algs_cum_regret(cumulative_regrets, alg_names, alg_types, output_dir, T, normalized, log_scaled=False):

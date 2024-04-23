@@ -105,5 +105,5 @@ class Manager():
     
 def plot_function_regrets(params, regret):
     for alg_name, alg_type in zip(params.alg_names, params.alg_types):
-        # to-do: add cumulative regret
         plt.plot_algs_avg_regret_ftypes(regret[alg_type], params.function_types, alg_type, alg_name, params.T, params.output_dir, params.normalized)
+        plt.plot_algs_cum_regret_ftypes(regret[alg_type], params.function_types, alg_type, alg_name, params.T, params.output_dir, params.normalized)

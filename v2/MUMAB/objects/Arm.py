@@ -24,7 +24,7 @@ class Arm:
     """
     def __init__(self, id, interaction):
         self.id             :int   = id
-        self.true_mean      :float = random.random() * 0.5 + 0.25
+        self.true_mean      :float = random.random() * 0.75 + 0.25
         self.num_pulls      :int   = 0
         self.total_reward   :int   = 0
         self.estimated_mean :int   = 0
@@ -33,7 +33,7 @@ class Arm:
         self.interaction    : MultiAgentInteractionInterface = interaction
 
     def get_reward(self):
-        return np.clip(np.random.normal(loc = self.true_mean, scale = 0.06), 0, 1)
+        return np.clip(np.random.normal(loc = self.true_mean, scale = 0.1), 0, 2)
     
     def pull(self, num_agents):
         single_reward = self.get_reward()
