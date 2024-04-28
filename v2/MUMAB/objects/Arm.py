@@ -37,10 +37,7 @@ class Arm:
     
     def pull(self, num_agents):
         single_reward = self.get_reward()
-        reward = self.interaction.function(num_agents) * single_reward
-
-        return reward, single_reward
-
+        return single_reward
 
     def update_attributes(self, time, observed_reward):
         self.num_pulls += 1

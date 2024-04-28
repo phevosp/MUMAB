@@ -1,3 +1,4 @@
+import random
 from numpy.random import normal as nl
 
 class Agent:
@@ -14,10 +15,12 @@ class Agent:
         ucb_dict:             dict (arm_id : ucb), dictionary of arms that the agent has pulled and the upper confidence bound of each arm
         std_dev:              float, std_dev for sensor noise
         bias:                 float, bias for sensor noise
+        move_prob:            float, probability of succesfully moving to a new node
+        sample_prob:          float, probability of sampling.
     Methods:
         move:           moves the agent to the inputted node
     """
-    def __init__(self, id, node, G, std_dev, bias):
+    def __init__(self, id, node, G, std_dev, bias, move_prob, sample_prob):
         # Agent attributes
         self.id           :int  = id
         self.current_node :dict = node
@@ -27,10 +30,22 @@ class Agent:
         self.conf_radius_dict    = {}
         self.ucb_dict            = {}
         self.std_dev             = std_dev
-        self.bias                = bias            
+        self.bias                = bias   
+        self.move_prob           = move_prob
+        self.sample_prob         = sample_prob   
+
+    # def update_move_prob():
+        
+
+    # def update_sample_prob():
+        
 
     def move(self, new_node):
         self.current_node = new_node
 
     def observation(self, true):
-        return nl(self.bias + true, self.std_dev, 1)[0]
+        # Sample with probability sample_prob
+        if random.random() < self.sample_prob:
+            return nl(self.bias + true, self.std_dev, 1)[0]
+        else:
+            return None

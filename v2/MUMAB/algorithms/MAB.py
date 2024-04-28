@@ -32,18 +32,21 @@ class MAB:
     def _step(self, arm_dict, arm_dict_agents, curr_time):
         rew_this_turn = 0
         for arm in arm_dict:
-            # Pull the arm
-            true_transformed_reward, true_single_reward = arm.pull(arm_dict[arm])
-            # Add the reward to the rew_per_turn (this keeps track of regret)
-            rew_this_turn += true_transformed_reward
+            # Pull the arm to get the true reward at time curr_time
+            true_single_reward = arm.pull(arm_dict[arm])
 
-            # Calculate the reward observed by agents
-            reward_observed = 0
+            succesful_samples = 0
             for agent in arm_dict_agents[arm]:
-                reward_observed += agent.observation(true_single_reward)
-            
-            # And use it to update UCB value
-            arm.update_attributes(curr_time, reward_observed/arm_dict[arm])
+                # Observe reward
+                reward_observed = agent.observation(true_single_reward)
+                if reward_observed:
+                    # If succesfully sampled, update the attributes with observed reward
+                    arm.update_attributes(curr_time, reward_observed)
+                    # And note that sample was succesful
+                    succesful_samples += 1          
+
+            # Add the theoretical reward per turn, but accounting for failures in sampling
+            rew_this_turn += arm.interaction.function(succesful_samples) * true_single_reward
         return rew_this_turn
 
     def _initialize(self, agents):
