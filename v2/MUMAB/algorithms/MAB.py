@@ -35,18 +35,21 @@ class MAB:
             # Pull the arm to get the true reward at time curr_time
             true_single_reward = arm.pull(arm_dict[arm])
 
-            succesful_samples = 0
+            # Keep track of total reward observed and number of successful samples
+            total_reward_observed = 0
+            successful_samples     = 0
             for agent in arm_dict_agents[arm]:
                 # Observe reward
-                reward_observed = agent.observation(true_single_reward)
+                reward_observed = agent.sample(true_single_reward)
                 if reward_observed:
-                    # If succesfully sampled, update the attributes with observed reward
-                    arm.update_attributes(curr_time, reward_observed)
-                    # And note that sample was succesful
-                    succesful_samples += 1          
+                    total_reward_observed += reward_observed
+                    successful_samples += 1          
 
             # Add the theoretical reward per turn, but accounting for failures in sampling
-            rew_this_turn += arm.interaction.function(succesful_samples) * true_single_reward
+            rew_this_turn += arm.interaction.function(successful_samples) * true_single_reward
+
+            # And update attribute with mean of the observed rewards
+            arm.update_attributes(curr_time, total_reward_observed/successful_samples)
         return rew_this_turn
 
     def _initialize(self, agents):
@@ -136,8 +139,6 @@ class MAB:
             for times in range(round(distribution[f"x_{self.G.nodes[node]['arm'].id}"])):
                 sampled_nodes.append(node)
 
-        # print("Sampled Nodes:", sampled_nodes)
-
         # Note number of pulls of baseline
         sorted_by_pulls = sorted(sampled_nodes, key = lambda x : self.G.nodes[x]['arm'].num_pulls)
         if self.type == 'original':
@@ -204,7 +205,6 @@ class MAB:
 
         # determines transition time interval, starts at the current time and goes until the minimum of self.T or curr_time + max_path_length
         trans_t = (curr_time, min(curr_time + max_path_length, self.T-1))
-
         while i < max_path_length and curr_time < self.T:
             curr_time += 1
             i += 1

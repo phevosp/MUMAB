@@ -21,7 +21,7 @@ class Agent:
     Methods:
         move:           moves the agent to the inputted node
     """
-    def __init__(self, id, node, G, std_dev, bias, move_prob, sample_prob, move_gamma=1, sample_gamma=1):
+    def __init__(self, id, node, G, std_dev, bias, move_prob, sample_prob, move_gamma, sample_gamma):
         # Agent attributes
         self.id           :int  = id
         self.current_node :dict = node
@@ -39,18 +39,15 @@ class Agent:
         self.sample_prob         = sample_prob
 
         self.move_gamma          = move_gamma
-        self.sample_gamma       = sample_gamma 
+        self.sample_gamma        = sample_gamma 
 
         self.num_sample_failures = 0
-        self.num_move_failures   = 0
-
-    # def update_move_prob():
-    
+        self.num_move_failures   = 0  
 
     def move(self, new_node):
         self.current_node = new_node
 
-    def observation(self, true):
+    def sample(self, true):
         """
             Return a noisy observation of the true reward. If the agent fails to sample, return None
             The sample probability is alpha * gamma^n where 
