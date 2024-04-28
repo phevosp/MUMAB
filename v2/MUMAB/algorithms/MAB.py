@@ -262,7 +262,15 @@ class MAB:
             self.G.nodes[i]['arm'].reset()
 
         # Initialize agents and assign vertex
-        agents   = [Agent(i, self.G.nodes[random.randint(0, self.K-1)], self.G, self.params.agent_std_dev[i], self.params.agent_bias[i]) for i in range(self.M)]
+        agents   = [Agent(i, 
+                          self.G.nodes[random.randint(0, self.K-1)], 
+                          self.G, self.params.agent_std_dev[i], 
+                          self.params.agent_bias[i], 
+                          self.params.agent_move_prob[i], 
+                          self.params.agent_sample_prob[i], 
+                          self.params.agent_move_gamma[i], 
+                          self.agent_sample_gamma[i]) 
+                    for i in range(self.M)]
 
         # Begin Algorithm
         # After the return from each function call, 

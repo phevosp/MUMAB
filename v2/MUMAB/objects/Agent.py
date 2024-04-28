@@ -17,10 +17,11 @@ class Agent:
         bias:                 float, bias for sensor noise
         move_prob:            float, probability of succesfully moving to a new node
         sample_prob:          float, probability of sampling.
+        dynamic_prob:         bool, whether the agent updates its move probability and sample probability based on its success rate
     Methods:
         move:           moves the agent to the inputted node
     """
-    def __init__(self, id, node, G, std_dev, bias, move_prob, sample_prob):
+    def __init__(self, id, node, G, std_dev, bias, move_prob, sample_prob, move_gamma=1, sample_gamma=1):
         # Agent attributes
         self.id           :int  = id
         self.current_node :dict = node
@@ -29,23 +30,36 @@ class Agent:
         self.estimated_mean_dict = {}
         self.conf_radius_dict    = {}
         self.ucb_dict            = {}
+
+        # Robustification attributes
         self.std_dev             = std_dev
         self.bias                = bias   
+
         self.move_prob           = move_prob
-        self.sample_prob         = sample_prob   
+        self.sample_prob         = sample_prob
+
+        self.move_gamma          = move_gamma
+        self.sample_gamma       = sample_gamma 
+
+        self.num_sample_failures = 0
+        self.num_move_failures   = 0
 
     # def update_move_prob():
-        
-
-    # def update_sample_prob():
-        
+    
 
     def move(self, new_node):
         self.current_node = new_node
 
     def observation(self, true):
-        # Sample with probability sample_prob
-        if random.random() < self.sample_prob:
+        """
+            Return a noisy observation of the true reward. If the agent fails to sample, return None
+            The sample probability is alpha * gamma^n where 
+                alpha is initial probability,
+                gamma is the growth rate, 
+                n is the number of failures
+        """
+        if random.random() < self.sample_prob * (self.sample_gamma**self.num_sample_failures):
             return nl(self.bias + true, self.std_dev, 1)[0]
         else:
+            self.num_sample_failures += 1
             return None
