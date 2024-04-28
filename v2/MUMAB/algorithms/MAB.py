@@ -199,7 +199,6 @@ class MAB:
             paths[agent.id] = sp_dict[(agent.id, f"{dest_node}_{index}")][1]
 
         # f.write("Paths: {}\n".format(paths))
-        # Move agents along paths, if agents have reached the end of their journey then they stay at desination node
         max_path_length = max([len(path) for path in paths])
         i = 0
 
@@ -269,7 +268,7 @@ class MAB:
                           self.params.agent_move_prob[i], 
                           self.params.agent_sample_prob[i], 
                           self.params.agent_move_gamma[i], 
-                          self.agent_sample_gamma[i]) 
+                          self.params.agent_sample_gamma[i]) 
                     for i in range(self.M)]
 
         # Begin Algorithm

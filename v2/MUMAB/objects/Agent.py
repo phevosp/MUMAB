@@ -36,16 +36,17 @@ class Agent:
         self.bias                = bias   
 
         self.move_prob           = move_prob
-        self.sample_prob         = sample_prob
-
         self.move_gamma          = move_gamma
+
+        self.sample_prob         = sample_prob
         self.sample_gamma        = sample_gamma 
 
         self.num_sample_failures = 0
         self.num_move_failures   = 0  
 
     def move(self, new_node):
-        self.current_node = new_node
+        if random.random() < self.move_prob * (self.move_gamma**self.num_move_failures):
+            self.current_node = new_node
 
     def sample(self, true):
         """
