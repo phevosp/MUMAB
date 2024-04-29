@@ -42,11 +42,25 @@ class Agent:
         self.sample_gamma        = sample_gamma 
 
         self.num_sample_failures = 0
-        self.num_move_failures   = 0  
+        self.num_move_failures   = 0
 
-    def move(self, new_node):
+        self.path                = []
+
+        self.G                   = G
+
+    def move(self):
+        if len(self.path) == 0:
+            return
+        
         if random.random() < self.move_prob * (self.move_gamma**self.num_move_failures):
-            self.current_node = new_node
+            self.current_node = self.G.nodes[self.path[0]]
+            self.path = self.path[1:]
+
+    def at_target_pose(self):
+        return len(self.path) == 0
+    
+    def set_target_path(self, path):
+        self.path = path
 
     def sample(self, true):
         """

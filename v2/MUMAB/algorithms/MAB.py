@@ -49,7 +49,8 @@ class MAB:
             rew_this_turn += arm.interaction.function(successful_samples) * true_single_reward
 
             # And update attribute with mean of the observed rewards
-            arm.update_attributes(curr_time, total_reward_observed/successful_samples)
+            if successful_samples > 0:
+                arm.update_attributes(curr_time, total_reward_observed/successful_samples)
         return rew_this_turn
 
     def _initialize(self, agents):
@@ -87,7 +88,8 @@ class MAB:
                 for neighbor_id in nx.all_neighbors(self.G, agent.current_node['id']):
                     if not visited[neighbor_id]:
                         self.G.nodes[neighbor_id]['prev_node'] = agent.current_node
-                        agent.move(self.G.nodes[neighbor_id])
+                        agent.set_target_path([neighbor_id])
+                        agent.move()
 
                         # Immediately mark as visited, though we haven't yet sampled reward
                         visited[agent.current_node['id']] = True
@@ -96,7 +98,8 @@ class MAB:
                 
                 # If we didn't move forward then move backwards
                 if not moved:    
-                    agent.move(agent.current_node['prev_node'])
+                    agent.set_target_path([agent.current_node['prev_node']['id']])
+                    agent.move()
 
             rew_per_turn.append(self._step(arm_dict, arm_dict_agents, curr_time))
 
@@ -197,14 +200,18 @@ class MAB:
             (node_name, dest_node) = assignments[('agent', agent.id)]
             index  = int(node_name.split('_')[1])
             paths[agent.id] = sp_dict[(agent.id, f"{dest_node}_{index}")][1]
+            agent.set_target_path(paths[agent.id])
 
         # f.write("Paths: {}\n".format(paths))
         max_path_length = max([len(path) for path in paths])
         i = 0
 
         # determines transition time interval, starts at the current time and goes until the minimum of self.T or curr_time + max_path_length
-        trans_t = (curr_time, min(curr_time + max_path_length, self.T-1))
-        while i < max_path_length and curr_time < self.T:
+        trans_t = [curr_time, 0]
+        
+        all_agents_reached = False
+
+        while not all_agents_reached and curr_time < self.T:
             curr_time += 1
             i += 1
             # arm_dict will be the set of arms that are visited at the current time
@@ -213,10 +220,12 @@ class MAB:
             # the agents at the arm
             arm_dict_agents = {}
 
+            all_agents_reached = True
             for agent in agents:
                 # If we have more path left, move to next node
-                if i < len(paths[agent.id]):
-                    agent.move(self.G.nodes[paths[agent.id][i]])
+                agent.move()
+                if not agent.at_target_pose():
+                    all_agents_reached = False
 
                 # Then add current vertex to arm_dict
                 if agent.current_node['arm'] not in arm_dict:
@@ -225,12 +234,13 @@ class MAB:
                 else:
                     arm_dict[agent.current_node['arm']] += 1
                     arm_dict_agents[agent.current_node['arm']].append(agent)
-
+        
 
             # arm_dict is number of agents on each arm
             # arm_dict_agents is the agents at each arm
             rew_per_turn.append(self._step(arm_dict, arm_dict_agents, curr_time))
-                
+    
+        trans_t[1] = min(curr_time, self.T - 1)       
         # We update arm_dict
         arm_dict = {}
 
@@ -352,7 +362,8 @@ class MAB_indv:
                 for neighbor_id in nx.all_neighbors(self.G, agent.current_node['id']):
                     if not visited[agent.id][neighbor_id]:
                         prev_nodes[agent.id][neighbor_id] = agent.current_node['id']
-                        agent.move(self.G.nodes[neighbor_id])
+                        agent.set_target_path([self.G.nodes[neighbor_id]])
+                        agent.move()
 
                         # Immediately mark as visited, though we haven't yet sampled reward
                         visited[agent.id][agent.current_node['id']] = True
@@ -408,6 +419,7 @@ class MAB_indv:
         
             # Compute single source shortest path and add to dictionary
             paths[agent.id]      = nx.shortest_path(G_directed, source = agent.current_node['id'], target = opt_arm, weight = "weight")
+            agent.set_target_path(paths[agent.id])
 
         # baseline_pulls gives the number of pulls of the arm with the least number of pulls by its respective agent
         # baseline_agent gives the agent who has pulled their respective arm the fewest number of times
@@ -422,13 +434,16 @@ class MAB_indv:
         i = 0
 
         # determines transition time interval, starts at the current time and goes until the minimum of self.T or curr_time + max_path_length
-        trans_t = (curr_time, min(curr_time + max_path_length, self.T-1))
+        trans_t = (curr_time, 0)
 
-        while i < max_path_length and curr_time < self.T:
+        all_agents_reached = False
+        while not all_agents_reached and curr_time < self.T:
             curr_time += 1
             i += 1
             # arm_dict will be the set of arms that are visited at the current time
             arm_dict = {}
+            all_agents_reached = True
+
             for agent in agents:
                 # Add current vertex to arm_dict
                 if agent.current_node['arm'] not in arm_dict:
@@ -437,11 +452,14 @@ class MAB_indv:
                     arm_dict[agent.current_node['arm']].append(agent.id)
 
                 # If we have more path left, move to next node
-                if i < len(paths[agent.id]):
-                    agent.move(self.G.nodes[paths[agent.id][i]])
+                agent.move()
+                if not agent.at_target_pose():
+                    all_agents_reached = False
+
 
             rew_per_turn.append(self._step(curr_time, agents, arm_dict))
 
+        trans_t[1] = curr_time
         # We update arm_dict
         arm_dict = {}
         for agent in agents:
