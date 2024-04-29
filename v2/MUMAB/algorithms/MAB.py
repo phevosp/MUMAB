@@ -45,8 +45,8 @@ class MAB:
                     total_reward_observed += reward_observed
                     successful_samples += 1          
 
-            # Add the theoretical reward per turn, but accounting for failures in sampling
-            rew_this_turn += arm.interaction.function(successful_samples) * true_single_reward
+            # Add the theoretical reward per turn, assuming all agents sampled
+            rew_this_turn += arm.interaction.function(arm_dict[arm]) * true_single_reward
 
             # And update attribute with mean of the observed rewards
             if successful_samples > 0:
