@@ -37,7 +37,7 @@ class MAB:
 
             # Keep track of total reward observed and number of successful samples
             total_reward_observed = 0
-            successful_samples     = 0
+            successful_samples    = 0
             for agent in arm_dict_agents[arm]:
                 # Observe reward
                 reward_observed = agent.sample(true_single_reward)
@@ -45,12 +45,11 @@ class MAB:
                     total_reward_observed += reward_observed
                     successful_samples += 1          
 
-            # Add the theoretical reward per turn, assuming all agents sampled
+            # Add the theoretical reward per turn, assuming all agents sampled for fair comparison
             rew_this_turn += arm.interaction.function(arm_dict[arm]) * true_single_reward
 
-            # And update attribute with mean of the observed rewards
-            if successful_samples > 0:
-                arm.update_attributes(curr_time, total_reward_observed/successful_samples)
+            # And update attribute passing in both the total reward observed, and the number of succesful samples
+            arm.update_attributes(curr_time, total_reward_observed, successful_samples)
         return rew_this_turn
 
     def _initialize(self, agents):

@@ -25,7 +25,8 @@ class Arm:
     def __init__(self, id, interaction):
         self.id             :int   = id
         self.true_mean      :float = random.random() * 0.75 + 0.25
-        self.num_pulls      :int   = 0
+        self.num_pulls      :int   = 0                               # Number of pulls, to be used when calculating confidence radius
+        self.num_samples    :int   = 0                               # Number of samples, to be used when calculating mean reward               
         self.total_reward   :int   = 0
         self.estimated_mean :int   = 0
         self.conf_radius    :int   = 0
@@ -39,12 +40,16 @@ class Arm:
         single_reward = self.get_reward()
         return single_reward
 
-    def update_attributes(self, time, observed_reward):
-        self.num_pulls += 1
-        self.total_reward += observed_reward
-        self.estimated_mean = self.total_reward / self.num_pulls
-        self.conf_radius = np.sqrt(2 * np.log(time) / self.num_pulls)
-        self.ucb = self.estimated_mean + self.conf_radius
+    def update_attributes(self, time, observed_reward, succesful_samples):
+        if succesful_samples == 0:
+            return
+        
+        self.num_pulls     += 1
+        self.num_samples   += succesful_samples
+        self.total_reward  += observed_reward
+        self.estimated_mean = self.total_reward / self.num_samples
+        self.conf_radius    = np.sqrt(2 * np.log(time) / self.num_pulls)
+        self.ucb            = self.estimated_mean + self.conf_radius
 
     
     def pull_individual(self, time, agents, agent_ids):
