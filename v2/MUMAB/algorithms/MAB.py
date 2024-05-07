@@ -56,7 +56,7 @@ class MAB:
         """
         Initializes the approximations for each vertex by having each agent run DFS until all the vertices are visited at least once.
         """
-        curr_time = 1
+        curr_time = 0
         # Keep track of reward per turn
         rew_per_turn = []
 
