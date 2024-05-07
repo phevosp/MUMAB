@@ -21,7 +21,7 @@ from .utils.OptimalDistribution import optimal_distribution
 
 class MAB:
     def __init__(self, type, G, params):
-        self.type = type
+        self.type = type        #algorithm type {original [min], median, max}
         self.params = params
         self.G = G
         self.T = params.T
@@ -32,25 +32,31 @@ class MAB:
     def _step(self, arm_dict, arm_dict_agents, curr_time):
         rew_this_turn = 0
         for arm in arm_dict:
-            # Pull the arm
-            true_transformed_reward, true_single_reward = arm.pull(arm_dict[arm])
-            # Add the reward to the rew_per_turn (this keeps track of regret)
-            rew_this_turn += true_transformed_reward
+            # Pull the arm to get the true reward at time curr_time
+            true_single_reward = arm.pull(arm_dict[arm])
 
-            # Calculate the reward observed by agents
-            reward_observed = 0
+            # Keep track of total reward observed and number of successful samples
+            total_reward_observed = 0
+            successful_samples    = 0
             for agent in arm_dict_agents[arm]:
-                reward_observed += agent.observation(true_single_reward)
-            
-            # And use it to update UCB value
-            arm.update_attributes(curr_time, reward_observed/arm_dict[arm])
+                # Observe reward
+                reward_observed = agent.sample(true_single_reward)
+                if reward_observed:
+                    total_reward_observed += reward_observed
+                    successful_samples += 1          
+
+            # Add the theoretical reward per turn, assuming all agents sampled for fair comparison
+            rew_this_turn += arm.interaction.function(arm_dict[arm]) * true_single_reward
+
+            # And update attribute passing in both the total reward observed, and the number of succesful samples
+            arm.update_attributes(curr_time, total_reward_observed, successful_samples)
         return rew_this_turn
 
     def _initialize(self, agents):
         """
         Initializes the approximations for each vertex by having each agent run DFS until all the vertices are visited at least once.
         """
-        curr_time = 1
+        curr_time = 0
         # Keep track of reward per turn
         rew_per_turn = []
 
@@ -81,21 +87,27 @@ class MAB:
                 for neighbor_id in nx.all_neighbors(self.G, agent.current_node['id']):
                     if not visited[neighbor_id]:
                         self.G.nodes[neighbor_id]['prev_node'] = agent.current_node
-                        agent.move(self.G.nodes[neighbor_id])
 
-                        # Immediately mark as visited, though we haven't yet sampled reward
+                        # target path is just next node 
+                        agent.set_target_path([neighbor_id])
+
+                        #try to move to next node
+                        agent.move()
+
+                        # Mark current node as visited and update moved to be true given we tried to move
                         visited[agent.current_node['id']] = True
                         moved                             = True
                         break
                 
                 # If we didn't move forward then move backwards
                 if not moved:    
-                    agent.move(agent.current_node['prev_node'])
+                    agent.set_target_path([agent.current_node['prev_node']['id']])
+                    agent.move()
 
             rew_per_turn.append(self._step(arm_dict, arm_dict_agents, curr_time))
 
         # Sample current arms as well
-        curr_time + 1
+        curr_time += 1
         for agent in agents:
             # Add current vertex to arm_dict
             if agent.current_node['arm'] not in arm_dict:
@@ -133,8 +145,6 @@ class MAB:
             for times in range(round(distribution[f"x_{self.G.nodes[node]['arm'].id}"])):
                 sampled_nodes.append(node)
 
-        # print("Sampled Nodes:", sampled_nodes)
-
         # Note number of pulls of baseline
         sorted_by_pulls = sorted(sampled_nodes, key = lambda x : self.G.nodes[x]['arm'].num_pulls)
         if self.type == 'original':
@@ -163,7 +173,7 @@ class MAB:
         # where path is the shortest path between the current node of the agent and the destination node
         sp_dict = {}
         for agent in agents:
-            # Compute single source shortest path
+            # Compute single source shortest path to all other nodes
             try:
                 shortest_path        = nx.shortest_path(G_directed, source = agent.current_node['id'], weight = "weight") 
             except:
@@ -171,10 +181,13 @@ class MAB:
                     if G_directed.edges[u, v]["weight"] < 0:
                         print(G_directed.edges[u, v]["weight"])
                 assert(False)
+
+            # Compute single source shortest path length to all other nodes
             shortest_path_length = nx.shortest_path_length(G_directed, source = agent.current_node['id'], weight = "weight")
             # And then add path to shortest path dictionary for all destination nodes
             for i, dest_node in enumerate(sampled_nodes):
                 sp_dict[(agent.id, f"{dest_node}_{i}")] = (shortest_path_length[dest_node], shortest_path[dest_node])
+
 
         # Create bipartite graph
         B = nx.Graph()
@@ -189,32 +202,42 @@ class MAB:
 
         # Create list paths where paths[i] is the path for agent i
         paths = [[] for _ in agents]
+
+        baseline_agent = None
+
         for agent in agents:
             (node_name, dest_node) = assignments[('agent', agent.id)]
             index  = int(node_name.split('_')[1])
             paths[agent.id] = sp_dict[(agent.id, f"{dest_node}_{index}")][1]
+            agent.set_target_path(paths[agent.id])
+            if dest_node == baseline_arm:
+                if not baseline_agent or agent.get_path_len() < baseline_agent.get_path_len():
+                    baseline_agent = agent                
 
+        theoretical_max_episode = baseline_agent.get_path_len() + 2*baseline_pulls - 1
         # f.write("Paths: {}\n".format(paths))
-        # Move agents along paths, if agents have reached the end of their journey then they stay at desination node
-        max_path_length = max([len(path) for path in paths])
-        i = 0
 
         # determines transition time interval, starts at the current time and goes until the minimum of self.T or curr_time + max_path_length
-        trans_t = (curr_time, min(curr_time + max_path_length, self.T-1))
+        trans_t = [curr_time, 0]
+        
+        all_agents_reached = False
 
-        while i < max_path_length and curr_time < self.T:
+        episode_len_bound = theoretical_max_episode*(self.params.alpha + 1)
+
+        while not all_agents_reached and curr_time < self.T and (curr_time - trans_t[0]) < episode_len_bound:
             curr_time += 1
-            i += 1
             # arm_dict will be the set of arms that are visited at the current time
             arm_dict = {}
 
             # the agents at the arm
             arm_dict_agents = {}
 
+            all_agents_reached = True
             for agent in agents:
                 # If we have more path left, move to next node
-                if i < len(paths[agent.id]):
-                    agent.move(self.G.nodes[paths[agent.id][i]])
+                agent.move()
+                if not agent.at_target_pose():
+                    all_agents_reached = False
 
                 # Then add current vertex to arm_dict
                 if agent.current_node['arm'] not in arm_dict:
@@ -223,12 +246,14 @@ class MAB:
                 else:
                     arm_dict[agent.current_node['arm']] += 1
                     arm_dict_agents[agent.current_node['arm']].append(agent)
-
+        
 
             # arm_dict is number of agents on each arm
             # arm_dict_agents is the agents at each arm
             rew_per_turn.append(self._step(arm_dict, arm_dict_agents, curr_time))
-                
+    
+        # Update end of transition interval
+        trans_t[1] = min(curr_time, self.T - 1)       
         # We update arm_dict
         arm_dict = {}
 
@@ -245,9 +270,9 @@ class MAB:
 
         # We sample until num_pulls of baseline_arm doubles
         if self.G.nodes[baseline_arm]['arm'] not in arm_dict:
-            assert(curr_time == self.T)
+            assert(curr_time == self.T or (curr_time - trans_t[0]) == episode_len_bound)
 
-        while self.G.nodes[baseline_arm]['arm'].num_pulls < 2 * baseline_pulls and curr_time < self.T:
+        while (curr_time - trans_t[0]) < episode_len_bound and curr_time < self.T:
             curr_time += 1
             rew_per_turn.append(self._step(arm_dict, arm_dict_agents, curr_time))
 
@@ -259,7 +284,15 @@ class MAB:
             self.G.nodes[i]['arm'].reset()
 
         # Initialize agents and assign vertex
-        agents   = [Agent(i, self.G.nodes[random.randint(0, self.K-1)], self.G, self.params.agent_std_dev[i], self.params.agent_bias[i]) for i in range(self.M)]
+        agents   = [Agent(i, 
+                          self.G.nodes[random.randint(0, self.K-1)], 
+                          self.G, self.params.agent_std_dev[i], 
+                          self.params.agent_bias[i], 
+                          self.params.agent_move_prob[i], 
+                          self.params.agent_sample_prob[i], 
+                          self.params.agent_move_gamma[i], 
+                          self.params.agent_sample_gamma[i]) 
+                    for i in range(self.M)]
 
         # Begin Algorithm
         # After the return from each function call, 
@@ -342,7 +375,8 @@ class MAB_indv:
                 for neighbor_id in nx.all_neighbors(self.G, agent.current_node['id']):
                     if not visited[agent.id][neighbor_id]:
                         prev_nodes[agent.id][neighbor_id] = agent.current_node['id']
-                        agent.move(self.G.nodes[neighbor_id])
+                        agent.set_target_path([self.G.nodes[neighbor_id]])
+                        agent.move()
 
                         # Immediately mark as visited, though we haven't yet sampled reward
                         visited[agent.id][agent.current_node['id']] = True
@@ -398,6 +432,7 @@ class MAB_indv:
         
             # Compute single source shortest path and add to dictionary
             paths[agent.id]      = nx.shortest_path(G_directed, source = agent.current_node['id'], target = opt_arm, weight = "weight")
+            agent.set_target_path(paths[agent.id])
 
         # baseline_pulls gives the number of pulls of the arm with the least number of pulls by its respective agent
         # baseline_agent gives the agent who has pulled their respective arm the fewest number of times
@@ -412,13 +447,16 @@ class MAB_indv:
         i = 0
 
         # determines transition time interval, starts at the current time and goes until the minimum of self.T or curr_time + max_path_length
-        trans_t = (curr_time, min(curr_time + max_path_length, self.T-1))
+        trans_t = (curr_time, 0)
 
-        while i < max_path_length and curr_time < self.T:
+        all_agents_reached = False
+        while not all_agents_reached and curr_time < self.T:
             curr_time += 1
             i += 1
             # arm_dict will be the set of arms that are visited at the current time
             arm_dict = {}
+            all_agents_reached = True
+
             for agent in agents:
                 # Add current vertex to arm_dict
                 if agent.current_node['arm'] not in arm_dict:
@@ -427,11 +465,14 @@ class MAB_indv:
                     arm_dict[agent.current_node['arm']].append(agent.id)
 
                 # If we have more path left, move to next node
-                if i < len(paths[agent.id]):
-                    agent.move(self.G.nodes[paths[agent.id][i]])
+                agent.move()
+                if not agent.at_target_pose():
+                    all_agents_reached = False
+
 
             rew_per_turn.append(self._step(curr_time, agents, arm_dict))
 
+        trans_t[1] = curr_time
         # We update arm_dict
         arm_dict = {}
         for agent in agents:

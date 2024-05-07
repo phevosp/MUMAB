@@ -33,13 +33,18 @@ def load_params():
     parser.add_argument('--p', type=float, default=0.05)
     parser.add_argument('--num_trials', type=int, default=10)    
     parser.add_argument('--function_types', nargs='+', default = ['log'], choices=['log', 'collision', 'more_log', 'linear', 'constant', 'power'])
+    parser.add_argument('--numer', nargs='+', default=[1])
+    parser.add_argument('--denom', nargs='+', default=[2])
     parser.add_argument('--output_dirs', nargs= '+')
     parser.add_argument('--alg_types', nargs='+', default=['original'], choices=list(alg_names.keys()))
     parser.add_argument('--normalized', type=bool, default=True)
-    parser.add_argument('--numer', nargs='+', default=[1])
-    parser.add_argument('--denom', nargs='+', default=[2])
-    parser.add_argument('--agent_std_dev', nargs='+', type=float)
-    parser.add_argument('--agent_bias', nargs='+', type=float)
+    parser.add_argument('--agent_std_dev', nargs='+', type=float, default = None)
+    parser.add_argument('--agent_bias', nargs='+', type=float, default = None)
+    parser.add_argument('--agent_move_prob', nargs='+', type=float, default = None)
+    parser.add_argument('--agent_sample_prob', nargs='+', type=float, default = None)
+    parser.add_argument('--agent_move_gamma', nargs='+', type=float, default = None)
+    parser.add_argument('--agent_sample_gamma', nargs='+', type=float, default=None)
+    parser.add_argument('--alpha', type=float, default=0)
     parser.add_argument('options', default=None, nargs=argparse.REMAINDER)
     params = parser.parse_args()
 
@@ -72,6 +77,18 @@ def load_params():
     
     if params.agent_bias is None:
         params.agent_bias = np.zeros(params.M, )
+
+    if params.agent_move_prob is None:
+        params.agent_move_prob = np.ones(params.M, )
+
+    if params.agent_sample_prob is None:
+        params.agent_sample_prob = np.ones(params.M, )
+
+    if params.agent_move_gamma is None:
+        params.agent_move_gamma = np.ones(params.M, )
+
+    if params.agent_sample_gamma is None:
+        params.agent_sample_gamma = np.ones(params.M, )
 
     params.alg_names = [alg_names[type] for type in params.alg_types]
     return params
