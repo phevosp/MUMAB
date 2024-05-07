@@ -44,6 +44,7 @@ def load_params():
     parser.add_argument('--agent_sample_prob', nargs='+', type=float, default = None)
     parser.add_argument('--agent_move_gamma', nargs='+', type=float, default = None)
     parser.add_argument('--agent_sample_gamma', nargs='+', type=float, default=None)
+    parser.add_argument('--alpha', type=float, default=0)
     parser.add_argument('options', default=None, nargs=argparse.REMAINDER)
     params = parser.parse_args()
 

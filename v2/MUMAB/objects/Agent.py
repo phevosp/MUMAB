@@ -62,6 +62,9 @@ class Agent:
     def set_target_path(self, path):
         self.path = path
 
+    def get_path_len(self):
+        return len(self.path)
+
     def sample(self, true):
         """
             Return a noisy observation of the true reward. If the agent fails to sample, return None

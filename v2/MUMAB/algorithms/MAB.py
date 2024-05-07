@@ -107,7 +107,7 @@ class MAB:
             rew_per_turn.append(self._step(arm_dict, arm_dict_agents, curr_time))
 
         # Sample current arms as well
-        curr_time += 1
+        curr_time + 1
         for agent in agents:
             # Add current vertex to arm_dict
             if agent.current_node['arm'] not in arm_dict:
@@ -188,6 +188,7 @@ class MAB:
             for i, dest_node in enumerate(sampled_nodes):
                 sp_dict[(agent.id, f"{dest_node}_{i}")] = (shortest_path_length[dest_node], shortest_path[dest_node])
 
+
         # Create bipartite graph
         B = nx.Graph()
         B.add_nodes_from([('agent', agent.id) for agent in agents])
@@ -201,12 +202,18 @@ class MAB:
 
         # Create list paths where paths[i] is the path for agent i
         paths = [[] for _ in agents]
+
+        baseline_agent = None
+
         for agent in agents:
             (node_name, dest_node) = assignments[('agent', agent.id)]
             index  = int(node_name.split('_')[1])
             paths[agent.id] = sp_dict[(agent.id, f"{dest_node}_{index}")][1]
             agent.set_target_path(paths[agent.id])
+            if dest_node == baseline_arm:
+                baseline_agent = agent                
 
+        theoretical_max_episode = baseline_agent.get_path_len() + 2*baseline_pulls
         # f.write("Paths: {}\n".format(paths))
 
         # determines transition time interval, starts at the current time and goes until the minimum of self.T or curr_time + max_path_length
@@ -214,7 +221,9 @@ class MAB:
         
         all_agents_reached = False
 
-        while not all_agents_reached and curr_time < self.T:
+        episode_len_bound = theoretical_max_episode*(self.params.alpha + 1)
+
+        while not all_agents_reached and curr_time < self.T and (curr_time - trans_t[0]) < episode_len_bound:
             curr_time += 1
             # arm_dict will be the set of arms that are visited at the current time
             arm_dict = {}
@@ -260,9 +269,9 @@ class MAB:
 
         # We sample until num_pulls of baseline_arm doubles
         if self.G.nodes[baseline_arm]['arm'] not in arm_dict:
-            assert(curr_time == self.T)
+            assert(curr_time == self.T or (curr_time - trans_t[0]) == episode_len_bound)
 
-        while self.G.nodes[baseline_arm]['arm'].num_pulls < 2 * baseline_pulls and curr_time < self.T:
+        while (curr_time - trans_t[0]) < episode_len_bound and curr_time < self.T:
             curr_time += 1
             rew_per_turn.append(self._step(arm_dict, arm_dict_agents, curr_time))
 
