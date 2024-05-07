@@ -21,7 +21,7 @@ from .utils.OptimalDistribution import optimal_distribution
 
 class MAB:
     def __init__(self, type, G, params):
-        self.type = type
+        self.type = type        #algorithm type {original [min], median, max}
         self.params = params
         self.G = G
         self.T = params.T
@@ -88,10 +88,14 @@ class MAB:
                 for neighbor_id in nx.all_neighbors(self.G, agent.current_node['id']):
                     if not visited[neighbor_id]:
                         self.G.nodes[neighbor_id]['prev_node'] = agent.current_node
+
+                        # target path is just next node 
                         agent.set_target_path([neighbor_id])
+
+                        #try to move to next node
                         agent.move()
 
-                        # Immediately mark as visited, though we haven't yet sampled reward
+                        # Mark current node as visited and update moved to be true given we tried to move
                         visited[agent.current_node['id']] = True
                         moved                             = True
                         break
@@ -104,7 +108,7 @@ class MAB:
             rew_per_turn.append(self._step(arm_dict, arm_dict_agents, curr_time))
 
         # Sample current arms as well
-        curr_time + 1
+        curr_time += 1
         for agent in agents:
             # Add current vertex to arm_dict
             if agent.current_node['arm'] not in arm_dict:
@@ -170,7 +174,7 @@ class MAB:
         # where path is the shortest path between the current node of the agent and the destination node
         sp_dict = {}
         for agent in agents:
-            # Compute single source shortest path
+            # Compute single source shortest path to all other nodes
             try:
                 shortest_path        = nx.shortest_path(G_directed, source = agent.current_node['id'], weight = "weight") 
             except:
@@ -178,6 +182,8 @@ class MAB:
                     if G_directed.edges[u, v]["weight"] < 0:
                         print(G_directed.edges[u, v]["weight"])
                 assert(False)
+
+            # Compute single source shortest path length to all other nodes
             shortest_path_length = nx.shortest_path_length(G_directed, source = agent.current_node['id'], weight = "weight")
             # And then add path to shortest path dictionary for all destination nodes
             for i, dest_node in enumerate(sampled_nodes):
@@ -203,8 +209,6 @@ class MAB:
             agent.set_target_path(paths[agent.id])
 
         # f.write("Paths: {}\n".format(paths))
-        max_path_length = max([len(path) for path in paths])
-        i = 0
 
         # determines transition time interval, starts at the current time and goes until the minimum of self.T or curr_time + max_path_length
         trans_t = [curr_time, 0]
@@ -213,7 +217,6 @@ class MAB:
 
         while not all_agents_reached and curr_time < self.T:
             curr_time += 1
-            i += 1
             # arm_dict will be the set of arms that are visited at the current time
             arm_dict = {}
 
@@ -240,6 +243,7 @@ class MAB:
             # arm_dict_agents is the agents at each arm
             rew_per_turn.append(self._step(arm_dict, arm_dict_agents, curr_time))
     
+        # Update end of transition interval
         trans_t[1] = min(curr_time, self.T - 1)       
         # We update arm_dict
         arm_dict = {}

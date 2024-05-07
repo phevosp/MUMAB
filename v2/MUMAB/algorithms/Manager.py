@@ -15,8 +15,8 @@ class Manager():
         self.cumulative_regrets = {}
         self.T = params.T
     
-    def evaluate_type(self, max_reward_per_turn, max_regret_per_turn, alg_type, alg_name, output_dir):
-        # Goal: Given an algorithm instance and a graph, evaluate the algorithm on the graph for num_trials trials
+    def _evaluate_type(self, max_reward_per_turn, max_regret_per_turn, alg_type, alg_name, output_dir):
+        # Goal: Given an algorithm type and a graph, evaluate the algorithm on the graph for num_trials trials
         # Note: max_per_reward_turn is the maximum reward possible per-turn.
         # Note: max_regret_per_turn is the maximum regret possible per-turn.
         self.cumulative_regrets[alg_type] = []
@@ -92,7 +92,7 @@ class Manager():
             if not type in regret: regret[type] = {}
 
             # Call evaluate_type on specific algorithm
-            regret[type][ftype] = self.evaluate_type(max_reward_per_turn, max_regret_per_turn, type, name, output_dir)
+            regret[type][ftype] = self._evaluate_type(max_reward_per_turn, max_regret_per_turn, type, name, output_dir)
             output_dir_type = f"{output_dir}{type}"
             plt.plot_cumulative_regret_total(self.cumulative_regrets[type], regret[type][ftype], output_dir_type, self.T, self.params.normalized)
             plt.plot_average_regret_total(self.cumulative_regrets[type], regret[type][ftype], output_dir_type, self.T, self.params.normalized)
