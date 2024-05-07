@@ -107,7 +107,7 @@ class MAB:
             rew_per_turn.append(self._step(arm_dict, arm_dict_agents, curr_time))
 
         # Sample current arms as well
-        curr_time + 1
+        curr_time += 1
         for agent in agents:
             # Add current vertex to arm_dict
             if agent.current_node['arm'] not in arm_dict:
@@ -211,9 +211,10 @@ class MAB:
             paths[agent.id] = sp_dict[(agent.id, f"{dest_node}_{index}")][1]
             agent.set_target_path(paths[agent.id])
             if dest_node == baseline_arm:
-                baseline_agent = agent                
+                if not baseline_agent or agent.get_path_len() < baseline_agent.get_path_len():
+                    baseline_agent = agent                
 
-        theoretical_max_episode = baseline_agent.get_path_len() + 2*baseline_pulls
+        theoretical_max_episode = baseline_agent.get_path_len() + 2*baseline_pulls - 1
         # f.write("Paths: {}\n".format(paths))
 
         # determines transition time interval, starts at the current time and goes until the minimum of self.T or curr_time + max_path_length
