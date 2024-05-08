@@ -40,10 +40,7 @@ class Arm:
         single_reward = self.get_reward()
         return single_reward
 
-    def update_attributes(self, time, observed_reward, succesful_samples):
-        if succesful_samples == 0:
-            return
-        
+    def update_attributes(self, time, observed_reward, succesful_samples):       
         self.num_pulls     += 1
         self.num_samples   += succesful_samples
         self.total_reward  += observed_reward
