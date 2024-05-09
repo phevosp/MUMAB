@@ -58,7 +58,5 @@ def compare_dist(optimal, allocations):
 
     for allocation in allocations:        
         ious.append(len(intersection(optimal, allocation))/N)
-        print(optimal)
-        print(allocation)
 
     return ious[-1] + ious[-2] >= 1.75, ious
