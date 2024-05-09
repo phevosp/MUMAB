@@ -44,7 +44,7 @@ class Manager():
             regret = max_reward_per_turn - np.array(reward_per_turn)
             learned = np.mean(regret[-int(0.05*self.params.T):]) < thresh
 
-            print(f"\n ALGORITHM LEARNED: {learned}")
+            print(f"\n ALGORITHM LEARNED: {learned} --> {np.mean(regret[-int(0.05*self.params.T):])}")
             # Calculate regret
             cum_regret = np.subtract(np.array([max_reward_per_turn * i for i in range(1, self.T+1)]), np.cumsum(reward_per_turn))
             # If normalized, divide the cumulative regret by the max_regret_per_turn
