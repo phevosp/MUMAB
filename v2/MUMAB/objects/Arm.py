@@ -73,3 +73,4 @@ class Arm:
         self.estimated_mean = 0
         self.conf_radius = 0
         self.ucb = 0
+        self.num_samples = 0
