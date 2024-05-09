@@ -15,7 +15,7 @@ class Manager():
         self.cumulative_regrets = {}
         self.T = params.T
     
-    def _evaluate_type(self, max_reward_per_turn, max_regret_per_turn, alg_type, alg_name, best_alloc, output_dir):
+    def _evaluate_type(self, max_reward_per_turn, max_regret_per_turn, alg_type, alg_name, best_alloc, output_dir, thresh=0.015):
         # Goal: Given an algorithm type and a graph, evaluate the algorithm on the graph for num_trials trials
         # Note: max_per_reward_turn is the maximum reward possible per-turn.
         # Note: max_regret_per_turn is the maximum regret possible per-turn.
@@ -40,6 +40,9 @@ class Manager():
             f.write("\n Algorithm Learned: " + str(learned))
             f.write("\n")
             f.close()
+
+            regret = max_reward_per_turn - np.array(reward_per_turn)
+            learned = np.mean(regret[-int(0.05*self.params.T):]) < thresh
 
             print(f"\n ALGORITHM LEARNED: {learned}")
             # Calculate regret

@@ -109,7 +109,7 @@ def initialize_graph(params):
 def setup_graph_interaction(G, function_type, params):
     # Assign each vertex an associated arm
     for i in G:
-        G.nodes[i]['arm'] = mobj.Arm(i, mobj.MultiAgentInteraction.getFunction(i, function_type, params))
+        G.nodes[i]['arm'] = mobj.Arm(i, mobj.MultiAgentInteraction.getFunction(i, function_type, params), params.K, random=False)
         G.nodes[i]['id']  = i
         G.nodes[i]['prev_node'] = G.nodes[i]
 

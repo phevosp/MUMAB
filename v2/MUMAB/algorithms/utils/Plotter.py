@@ -58,10 +58,11 @@ class Plotter:
     def plot_iou(iou, output_dir):
         plt.clf()
         E = len(iou)
-        plt.plot(range(E), iou)
+        distance = [1 - val for val in iou]
+        plt.plot(range(E), distance)
         plt.xlabel("Epsiode")
-        plt.ylabel("IOU")
-        plt.title("Intersection over union between chosen and optimal allocation as a function of episode")
+        plt.ylabel("Distance")
+        plt.title("Distance between chosen and optimal allocation")
         save_name = "/iou.png"
         plt.savefig(output_dir + save_name)
 

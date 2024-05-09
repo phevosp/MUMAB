@@ -22,9 +22,12 @@ class Arm:
         pull:           updates the arm's attributes after simulating a pull of the arm
         reset:         resets the arm's attributes
     """
-    def __init__(self, id, interaction):
+    def __init__(self, id, interaction, K, random=False):
         self.id             :int   = id
-        self.true_mean      :float = random.random() * 9.75 + 0.25
+        if random:
+            self.true_mean      :float = random.random() * 0.75 + 0.25
+        else:
+            self.true_mean      :float = 0.25 + (self.id*0.75)/(K - 1)
         self.num_pulls      :int   = 0                               # Number of pulls, to be used when calculating confidence radius
         self.num_samples    :int   = 0                               # Number of samples, to be used when calculating mean reward               
         self.total_reward   :int   = 0
@@ -34,7 +37,7 @@ class Arm:
         self.interaction    : MultiAgentInteractionInterface = interaction
 
     def get_reward(self):
-        return np.clip(np.random.normal(loc = self.true_mean, scale = 0.75), 0, 25)
+        return np.clip(np.random.normal(loc = self.true_mean, scale = 0.05), 0, 2)
     
     def pull(self, num_agents):
         single_reward = self.get_reward()
