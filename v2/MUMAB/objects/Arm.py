@@ -1,7 +1,7 @@
 import numpy as np
 import random
 from MUMAB.objects.MultiAgentInteraction import MultiAgentInteractionInterface
-
+import math
 
 class Arm:
     """
@@ -53,9 +53,11 @@ class Arm:
         total_episode_pulls  = 0     # Total number of pulls in the episode
 
         for agent in agents:
-            if self.id in agent.arm_intervals:
+            if self.id in agent.arm_intervals and not math.isnan(agent.arm_means[self.id]):
                 length = agent.arm_intervals[self.id][1] - agent.arm_intervals[self.id][0]
                 mean   = agent.arm_means[self.id]
+
+
 
                 total_episode_reward += mean * length
                 total_episode_counts += length
@@ -63,6 +65,7 @@ class Arm:
                 sampling_intervals.append(agent.arm_intervals[self.id])
                 earliest_obs = min(earliest_obs, agent.arm_intervals[self.id][0])
                 latest_obs   = max(latest_obs, agent.arm_intervals[self.id][1])
+
 
         for i in range(earliest_obs, latest_obs):
             for interval in sampling_intervals:
@@ -76,6 +79,7 @@ class Arm:
         self.estimated_mean = self.total_reward / self.num_samples
         self.conf_radius    = np.sqrt(2 * np.log(time) / self.num_pulls)
         self.ucb            = self.estimated_mean + self.conf_radius
+
 
     """BEGIN HACK"""
     def update_attributes_hack(self):
