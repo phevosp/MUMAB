@@ -46,3 +46,19 @@ def optimal_distribution(arm_list, params, theoretical=False, minimize=False, de
 
     store_values = m.getAttr("X", store_vars)
     return store_values, m.getObjective().getValue()
+
+def compare_dist(optimal, allocations):
+    ious = []
+
+    def intersection(lst1, lst2):
+        lst3 = [value for value in lst1 if value in lst2]
+        return lst3
+    
+    N = len(optimal)
+
+    for allocation in allocations:        
+        ious.append(len(intersection(optimal, allocation))/N)
+        print(optimal)
+        print(allocation)
+
+    return ious[-1] + ious[-2] >= 1.75, ious

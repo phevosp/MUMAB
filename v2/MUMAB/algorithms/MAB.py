@@ -276,7 +276,12 @@ class MAB:
             curr_time += 1
             rew_per_turn.append(self._step(arm_dict, arm_dict_agents, curr_time))
 
-        return curr_time, rew_per_turn, trans_t
+        # for tracking agent movement over time
+        allocation = []
+        for agent in agents:
+            allocation.append(agent.current_node['arm'].id)
+
+        return curr_time, rew_per_turn, trans_t, allocation
     
     def run(self, f):
         # Reset arms
@@ -305,14 +310,17 @@ class MAB:
 
         # List of transition intervals
         transition_intervals = []
+
+        episode_allocations = []
         with tqdm(total=self.T) as pbar:
             while curr_time < self.T:
                 curr_ep   += 1
                 # print("Episode {}".format(curr_ep))
                 # f.write("Starting Episode {}, Current time is {}\n".format(curr_ep, curr_time))
-                curr_time, new_rewards, trans_t = self._episode(agents, curr_time)
+                curr_time, new_rewards, trans_t, allocation = self._episode(agents, curr_time)
                 reward_per_turn += new_rewards
                 transition_intervals.append(trans_t)
+                episode_allocations.append(allocation)
                 pbar.update(curr_time - pbar.n)
         pbar.close()
 
@@ -325,7 +333,7 @@ class MAB:
             f.write("\nUCB Value: " + str(arm.ucb))
             f.write("\nNum Pulls: " + str(arm.num_pulls))
 
-        return reward_per_turn, curr_time, transition_intervals
+        return reward_per_turn, curr_time, transition_intervals, episode_allocations
 
 class MAB_indv:
     def __init__(self, G, params):
