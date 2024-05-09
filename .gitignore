@@ -161,6 +161,8 @@ cython_debug/
 
 # Output
 v2/output/
+v2/old_outputs/
+
 
 # These files because they are annoying
 *.pyc
