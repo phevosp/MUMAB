@@ -122,17 +122,18 @@ class MAB:
             If type == 'median':   baseline_arm is the arm with the median number of pulls
             If type == 'max':      baseline_arm is the arm with the most number of pulls
         """
-        # Have agents define packages
-        for agent in agents:
-            agent.define_package()
+        if curr_time > 0:
+            # Have agents define packages
+            for agent in agents:
+                agent.define_package()
 
-        # Update UCB values from previous episode/initialization
-        for node in self.G:
-            self.G.nodes[node]['arm'].update_attributes(agents, curr_time)
+            # Update UCB values from previous episode/initialization
+            for node in self.G:
+                self.G.nodes[node]['arm'].update_attributes(agents, curr_time)
 
-        # Reset packages
-        for agent in agents:
-            agent.reset_package()
+            # Reset packages
+            for agent in agents:
+                agent.reset_package()
 
         # Keep track of reward per turn
         rew_per_turn = []
@@ -303,8 +304,14 @@ class MAB:
         # And each agent has yet to sample from their current vertex
         curr_time = 0
         curr_ep   = 0
-        curr_time, reward_per_turn = self._initialize(agents)
+        # curr_time, reward_per_turn = self._initialize(agents)
 
+        """BEGIN HACK"""
+        # JUST FOR NOW INITIALIZE EACH ARM TO HAVE JUST ONE SAMPLE
+        for arm in self.G:
+            self.G.nodes[arm]['arm'].update_attributes_hack()
+        reward_per_turn = []
+        """END HACK"""
 
         # List of transition intervals
         transition_intervals = []

@@ -74,6 +74,16 @@ class Arm:
         self.conf_radius    = np.sqrt(2 * np.log(time) / self.num_pulls)
         self.ucb            = self.estimated_mean + self.conf_radius
 
+    """BEGIN HACK"""
+    def update_attributes_hack(self):
+        self.num_pulls      = 1
+        self.num_samples    = 1
+        self.total_reward   = self.get_reward()
+        self.estimated_mean = self.total_reward / self.num_samples
+        self.conf_radius    = np.sqrt(2 * np.log(1) / self.num_pulls)
+        self.ucb            = self.estimated_mean + self.conf_radius
+    """END HACK"""
+
     def pull_individual(self, time, agents, agent_ids):
         single_reward = self.get_reward()
         reward = self.interaction.function(len(agent_ids)) * single_reward
