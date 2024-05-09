@@ -35,21 +35,12 @@ class MAB:
             # Pull the arm to get the true reward at time curr_time
             true_single_reward = arm.pull(arm_dict[arm])
 
-            # Keep track of total reward observed and number of successful samples
-            total_reward_observed = 0
-            successful_samples    = 0
             for agent in arm_dict_agents[arm]:
                 # Observe reward
-                reward_observed = agent.sample(true_single_reward)
-                if reward_observed:
-                    total_reward_observed += reward_observed
-                    successful_samples += 1          
+                agent.sample(true_single_reward)    
 
             # Add the theoretical reward per turn, assuming all agents sampled for fair comparison
             rew_this_turn += arm.interaction.function(arm_dict[arm]) * true_single_reward
-
-            # And update attribute passing in both the total reward observed, and the number of succesful samples
-            arm.update_attributes(curr_time, total_reward_observed, successful_samples)
         return rew_this_turn
 
     def _initialize(self, agents):
@@ -131,6 +122,18 @@ class MAB:
             If type == 'median':   baseline_arm is the arm with the median number of pulls
             If type == 'max':      baseline_arm is the arm with the most number of pulls
         """
+        # Have agents define packages
+        for agent in agents:
+            agent.define_package()
+
+        # Update UCB values from previous episode/initialization
+        for node in self.G:
+            self.G.nodes[node]['arm'].update_attributes(agents, curr_time)
+
+        # Reset packages
+        for agent in agents:
+            agent.reset_package()
+
         # Keep track of reward per turn
         rew_per_turn = []
 

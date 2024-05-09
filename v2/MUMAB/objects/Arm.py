@@ -40,15 +40,40 @@ class Arm:
         single_reward = self.get_reward()
         return single_reward
 
-    def update_attributes(self, time, observed_reward, succesful_samples):       
-        self.num_pulls     += 1
-        self.num_samples   += succesful_samples
-        self.total_reward  += observed_reward
+    def update_attributes(self, agents, time):
+        total_episode_reward = 0     # Total episode reward
+        total_episode_counts = 0     # Total episode sampling counts
+
+        sampling_intervals   = []    # Intervals of when agents were sampling the arm
+        earliest_obs         = time  # Earliest time when an agent sampled
+        latest_obs           = 0     # Latest time when an agent sampled
+        total_episode_pulls  = 0     # Total number of pulls in the episode
+
+        for agent in agents:
+            if self.id in agent.arm_intervals:
+                length = agent.arm_intervals[self.id][1] - agent.arm_intervals[self.id][0]
+                mean   = agent.arm_means[self.id]
+
+                total_episode_reward += mean * length
+                total_episode_counts += length
+
+                sampling_intervals.append(agent.arm_intervals[self.id])
+                earliest_obs = min(earliest_obs, agent.arm_intervals[self.id][0])
+                latest_obs   = max(latest_obs, agent.arm_intervals[self.id][1])
+
+        for i in range(earliest_obs, latest_obs):
+            for interval in sampling_intervals:
+                if i >= interval[0] and i < interval[1]:
+                    total_episode_pulls += 1
+                    break 
+
+        self.num_pulls     += total_episode_pulls
+        self.num_samples   += total_episode_counts
+        self.total_reward  += total_episode_reward
         self.estimated_mean = self.total_reward / self.num_samples
         self.conf_radius    = np.sqrt(2 * np.log(time) / self.num_pulls)
         self.ucb            = self.estimated_mean + self.conf_radius
 
-    
     def pull_individual(self, time, agents, agent_ids):
         single_reward = self.get_reward()
         reward = self.interaction.function(len(agent_ids)) * single_reward
