@@ -85,7 +85,7 @@ class Arm:
         self.total_reward += total_episode_reward
         self.estimated_mean = self.total_reward / self.num_samples
         self.conf_radius = np.sqrt(
-            124 * len(agents) ** 2 * B3 * math.exp(1) * np.log(time) / self.num_pulls
+            124 * len(agents) ** 2 * math.exp(1) * np.log(time) / self.num_pulls
         )
         self.ucb = self.estimated_mean + self.conf_radius
 
@@ -98,7 +98,7 @@ class Arm:
         total_episode_reward = 0
         total_episode_counts = 0
 
-        for i in len(range(agents[0].arm_list)):
+        for i in range(len(agents[0].arm_list)):
             for agent in agents:
                 if agent.arm_list[i] == self.id:
                     total_episode_reward += agent.reward_list[i]
@@ -122,9 +122,9 @@ class Arm:
         self.total_reward = self.get_reward()
         self.estimated_mean = self.total_reward / self.num_samples
         self.conf_radius = (
-            np.sqrt(124 * num_agents**2 * B3 * math.exp(1) * np.log(1) / self.num_pulls)
+            np.sqrt(124 * num_agents**2 * math.exp(1) * np.log(1) / self.num_pulls)
             if type == "robust"
-            else np.sqrt(2 * B1 * np.log(1) / self.num_pulls)
+            else np.sqrt(2 * np.log(1) / self.num_pulls)
         )
         self.ucb = self.estimated_mean + self.conf_radius
 
