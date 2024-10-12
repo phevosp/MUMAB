@@ -19,10 +19,8 @@ from MUMAB.algorithms.Manager import Manager, plot_function_regrets
 
 # Dictionary of implemented algorithms
 alg_names = {
-    'indv' : "Indv-G-UCB",
-    'median' : "Multi-G-UCB-median",
-    'max' : "Multi-G-UCB-max",
-    'original' : "Multi-G-UCB"
+    'simple': 'Simple-Multi-G-UCB',
+    'robust': 'Multi-G-UCB'
 }
 
 def load_params():
@@ -36,7 +34,7 @@ def load_params():
     parser.add_argument('--numer', nargs='+', default=[1])
     parser.add_argument('--denom', nargs='+', default=[2])
     parser.add_argument('--output_dirs', nargs= '+')
-    parser.add_argument('--alg_types', nargs='+', default=['original'], choices=list(alg_names.keys()))
+    parser.add_argument('--alg_types', nargs='+', default=['robust'], choices=list(alg_names.keys()))
     parser.add_argument('--normalized', type=bool, default=True)
     parser.add_argument('--agent_std_dev', nargs='+', type=float, default = None)
     parser.add_argument('--agent_bias', nargs='+', type=float, default = None)
@@ -109,7 +107,7 @@ def initialize_graph(params):
 def setup_graph_interaction(G, function_type, params):
     # Assign each vertex an associated arm
     for i in G:
-        G.nodes[i]['arm'] = mobj.Arm(i, mobj.MultiAgentInteraction.getFunction(i, function_type, params))
+        G.nodes[i]['arm'] = mobj.Arm(i, mobj.MultiAgentInteraction.getFunction(i, function_type, params), params.K, random=False)
         G.nodes[i]['id']  = i
         G.nodes[i]['prev_node'] = G.nodes[i]
 

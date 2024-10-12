@@ -55,6 +55,17 @@ class Plotter:
         save_name = "/normalized_average_regret.png" if normalized else "/average_regret.png"
         plt.savefig(output_dir + save_name)
     
+    def plot_iou(iou, output_dir):
+        plt.clf()
+        E = len(iou)
+        distance = [1 - val for val in iou]
+        plt.plot(range(E), distance)
+        plt.xlabel("Epsiode")
+        plt.ylabel("Distance")
+        plt.title("Distance between chosen and optimal allocation")
+        save_name = "/iou.png"
+        plt.savefig(output_dir + save_name)
+
     def plot_cumulative_regret_total(alg_cumulative_regrets, av_cum_regret, output_dir, T, normalized):
         plt.clf()
         for regret in alg_cumulative_regrets:
