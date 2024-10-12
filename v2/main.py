@@ -20,7 +20,8 @@ from MUMAB.algorithms.Manager import Manager, plot_function_regrets
 # Dictionary of implemented algorithms
 alg_names = {
     'simple': 'Simple-Multi-G-UCB',
-    'robust': 'Multi-G-UCB'
+    'robust': 'Multi-G-UCB',
+    'indv': 'Individual-Multi-G-UCB'
 }
 
 def load_params():
@@ -34,7 +35,7 @@ def load_params():
     parser.add_argument('--numer', nargs='+', default=[1])
     parser.add_argument('--denom', nargs='+', default=[2])
     parser.add_argument('--output_dirs', nargs= '+')
-    parser.add_argument('--alg_types', nargs='+', default=['robust'], choices=list(alg_names.keys()))
+    parser.add_argument('--alg_types', nargs='+', default=['indv'], choices=list(alg_names.keys()))
     parser.add_argument('--normalized', type=bool, default=True)
     parser.add_argument('--agent_std_dev', nargs='+', type=float, default = None)
     parser.add_argument('--agent_bias', nargs='+', type=float, default = None)
@@ -111,7 +112,10 @@ def setup_graph_interaction(G, function_type, params):
         G.nodes[i]['id']  = i
         G.nodes[i]['prev_node'] = G.nodes[i]
 
-    return G
+    G_ = G.copy()
+    for i in G:
+        G_.nodes[i]['arm'] = mobj.ArmIndividual(i, mobj.MultiAgentInteraction.getFunction(i, function_type, params), params.K, params.M, random=False)
+    return G, G_
 
 
 def main():
@@ -124,8 +128,8 @@ def main():
     for output_dir, ftype in zip(params.output_dirs, params.function_types):
         print(f'================================================================================Evaluating {ftype} Performance ================================================================================')
         G = G_.copy()
-        setup_graph_interaction(G, ftype, params)
-        manager = Manager(params, G)
+        G, Gindv = setup_graph_interaction(G, ftype, params)
+        manager = Manager(params, G, Gindv)
         regret_results = manager.evaluate_algs(output_dir, regret_results, ftype)
 
     plot_function_regrets(params, regret_results)

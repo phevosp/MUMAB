@@ -66,6 +66,9 @@ class Agent:
 
         self.num_sample_failures = 0
         self.num_move_failures = 0
+        
+        self.sample_req = 0
+        self.episode_sample_count = 0
 
         self.path = []
 
@@ -88,6 +91,9 @@ class Agent:
 
     def at_target_pose(self):
         return len(self.path) == 0
+
+    def get_current_node(self):
+        return self.current_node
 
     def set_target_path(self, path):
         self.path = path
@@ -113,6 +119,7 @@ class Agent:
 
         self.arm_list.append(self.current_node["arm"].id)
         self.reward_list.append(sample)
+        self.episode_sample_count += 1
 
     def define_package(self):
         assert self.arm_intervals == {}
@@ -155,3 +162,10 @@ class Agent:
         self.arm_means = {}
         self.arm_list = []
         self.reward_list = []
+
+    def sampled_episode_req(self):
+        return self.episode_sample_count >= self.sample_req
+
+    def set_sample_req(self, sample_req):
+        self.episode_sample_count = 0
+        self.sample_req = sample_req

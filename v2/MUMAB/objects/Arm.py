@@ -128,26 +128,6 @@ class Arm:
         )
         self.ucb = self.estimated_mean + self.conf_radius
 
-    def pull_individual(self, time, agents, agent_ids):
-        single_reward = self.get_reward()
-        reward = self.interaction.function(len(agent_ids)) * single_reward
-        for a_id in agent_ids:
-            agents[a_id].num_pulls_dict[self.id] += 1
-            agents[a_id].total_reward_dict[self.id] += single_reward
-            agents[a_id].estimated_mean_dict[self.id] = (
-                agents[a_id].total_reward_dict[self.id]
-                / agents[a_id].num_pulls_dict[self.id]
-            )
-            agents[a_id].conf_radius_dict[self.id] = np.sqrt(
-                2 * np.log(time) / agents[a_id].num_pulls_dict[self.id]
-            )
-            agents[a_id].ucb_dict[self.id] = (
-                agents[a_id].estimated_mean_dict[self.id]
-                + agents[a_id].conf_radius_dict[self.id]
-            )
-
-        return reward
-
     def __str__(self):
         return f"Arm {self.id}: True Mean = {self.true_mean}, Estimated Mean = {self.estimated_mean}, UCB = {self.ucb}, Num Pulls = {self.num_pulls}, Total Reward = {self.total_reward}"
 
@@ -158,3 +138,22 @@ class Arm:
         self.conf_radius = 0
         self.ucb = 0
         self.num_samples = 0
+
+
+class ArmIndividual:
+    def __init__(self, id, interaction, K, M, random=False):
+        self.Arms = [Arm(id, interaction, K, random) for _ in range(M)]
+        self.id = id
+
+    def update_attributes(self, agent, time):
+        self.Arms[agent.id].update_attributes_simple([agent], time)
+        
+    def update_attributes_hack(self):
+        for arm in self.Arms:
+            arm.update_attributes_hack(1, "simple")
+
+    def reset(self):
+        for arm in self.Arms:
+            arm.reset()
+    
+ 

@@ -10,9 +10,10 @@ from tqdm import tqdm
 
 
 class Manager:
-    def __init__(self, params, G):
+    def __init__(self, params, G, Gindv):
         self.params = params
         self.G = G
+        self.Gindv = Gindv
         self.cumulative_regrets = {}
         self.T = params.T
 
@@ -30,7 +31,7 @@ class Manager:
         # Note: max_per_reward_turn is the maximum reward possible per-turn.
         # Note: max_regret_per_turn is the maximum regret possible per-turn.
         self.cumulative_regrets[alg_type] = []
-        mab_alg = getMAB(alg_type, self.G, self.params)
+        mab_alg = getMAB(alg_type, self.G, self.Gindv, self.params)
 
         print(
             f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Evaluating {alg_name}~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
