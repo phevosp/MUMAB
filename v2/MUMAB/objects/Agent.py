@@ -2,6 +2,7 @@ import random
 import numpy as np
 from numpy.random import normal as nl
 
+
 class Agent:
     """
     Agent class for multi-armed bandit problem.
@@ -31,51 +32,63 @@ class Agent:
     Methods:
         move:           moves the agent to the inputted node
     """
-    def __init__(self, id, node, G, std_dev, bias, move_prob, sample_prob, move_gamma, sample_gamma):
+
+    def __init__(
+        self,
+        id,
+        node,
+        G,
+        std_dev,
+        bias,
+        move_prob,
+        sample_prob,
+        move_gamma,
+        sample_gamma,
+    ):
         # Agent attributes
-        self.id           :int  = id
-        self.current_node :dict = node
-        self.num_pulls_dict      = {i: 0 for i in G}
-        self.total_reward_dict   = {i: 0 for i in G}
+        self.id: int = id
+        self.current_node: dict = node
+        self.num_pulls_dict = {i: 0 for i in G}
+        self.total_reward_dict = {i: 0 for i in G}
         self.estimated_mean_dict = {}
-        self.conf_radius_dict    = {}
-        self.ucb_dict            = {}
+        self.conf_radius_dict = {}
+        self.ucb_dict = {}
 
         # Robustification attributes
-        self.std_dev             = std_dev
-        self.bias                = bias   
+        self.std_dev = std_dev
+        self.bias = bias
 
-        self.move_prob           = move_prob
-        self.move_gamma          = move_gamma
+        self.move_prob = move_prob
+        self.move_gamma = move_gamma
 
-        self.sample_prob         = sample_prob
-        self.sample_gamma        = sample_gamma 
+        self.sample_prob = sample_prob
+        self.sample_gamma = sample_gamma
 
         self.num_sample_failures = 0
-        self.num_move_failures   = 0
+        self.num_move_failures = 0
 
-        self.path                = []
+        self.path = []
 
-        self.G                   = G
+        self.G = G
 
         # Variables for communication protocol
-        self.arm_list      = [] # Keeps track of the visited arm throughout episode
-        self.reward_list   = [] # Keeps track of all rewards throughout the episode
+        self.arm_list = []  # Keeps track of the visited arm throughout episode
+        self.reward_list = []  # Keeps track of all rewards throughout the episode
 
-        self.arm_intervals = {} # Intervals sent to centralizer
-        self.arm_means     = {} # Means sent to centralizer
+        self.arm_intervals = {}  # Intervals sent to centralizer
+        self.arm_means = {}  # Means sent to centralizer
 
     def move(self):
         if len(self.path) == 0:
             return
-        
+
         if random.random() < self.move_prob * (self.move_gamma**self.num_move_failures):
             self.current_node = self.G.nodes[self.path[0]]
             self.path = self.path[1:]
 
     def at_target_pose(self):
         return len(self.path) == 0
-    
+
     def set_target_path(self, path):
         self.path = path
 
@@ -84,31 +97,33 @@ class Agent:
 
     def sample(self, true):
         """
-            Return a noisy observation of the true reward. If the agent fails to sample, return None
-            The sample probability is alpha * gamma^n where 
-                alpha is initial probability,
-                gamma is the growth rate, 
-                n is the number of failures
+        Return a noisy observation of the true reward. If the agent fails to sample, return None
+        The sample probability is alpha * gamma^n where
+            alpha is initial probability,
+            gamma is the growth rate,
+            n is the number of failures
         """
-        if random.random() < self.sample_prob * (self.sample_gamma**self.num_sample_failures):
+        if random.random() < self.sample_prob * (
+            self.sample_gamma**self.num_sample_failures
+        ):
             sample = nl(self.bias + true, self.std_dev, 1)[0]
         else:
             self.num_sample_failures += 1
             sample = None
 
-        self.arm_list.append(self.current_node['arm'].id)
+        self.arm_list.append(self.current_node["arm"].id)
         self.reward_list.append(sample)
 
     def define_package(self):
-        assert(self.arm_intervals == {})
-        assert(self.arm_means     == {})
+        assert self.arm_intervals == {}
+        assert self.arm_means == {}
 
         # Start by recreating intervals
         for i, arm in enumerate(self.arm_list):
-            if i == 0 or arm != self.arm_list[i-1]:
+            if i == 0 or arm != self.arm_list[i - 1]:
                 # This is a new arm. Should not have already been visited
                 try:
-                    assert(arm not in self.arm_intervals)
+                    assert arm not in self.arm_intervals
                 except:
                     print(self.arm_intervals)
                     print(arm)
@@ -117,22 +132,26 @@ class Agent:
 
                 if i > 0:
                     # Previous arm should exist and not have updated end time
-                    assert(arm != self.arm_list[i-1])
-                    assert(self.arm_intervals[self.arm_list[i-1]][1] == -1)
-                    self.arm_intervals[self.arm_list[i-1]][1] = i
+                    assert arm != self.arm_list[i - 1]
+                    assert self.arm_intervals[self.arm_list[i - 1]][1] == -1
+                    self.arm_intervals[self.arm_list[i - 1]][1] = i
 
         # Update end time for last arm
         self.arm_intervals[self.arm_list[-1]][1] = len(self.arm_list)
 
         # Convert to np.array; this also converts Nones to nans
-        self.reward_list = np.array(self.reward_list, dtype = float)
+        self.reward_list = np.array(self.reward_list, dtype=float)
 
         # Now calculate means
         for arm in self.arm_intervals:
-            self.arm_means[arm] = np.nanmean(self.reward_list[self.arm_intervals[arm][0]:self.arm_intervals[arm][1]])
+            self.arm_means[arm] = np.nanmean(
+                self.reward_list[
+                    self.arm_intervals[arm][0] : self.arm_intervals[arm][1]
+                ]
+            )
 
     def reset_package(self):
         self.arm_intervals = {}
-        self.arm_means     = {}
-        self.arm_list      = []
-        self.reward_list   = []
+        self.arm_means = {}
+        self.arm_list = []
+        self.reward_list = []
