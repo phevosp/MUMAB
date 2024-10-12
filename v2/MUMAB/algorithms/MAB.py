@@ -58,7 +58,14 @@ class MAB:
 
             # Update UCB values from previous episode/initialization
             for node in self.G:
-                self.G.nodes[node]["arm"].update_attributes(agents, curr_time)
+                if self.type == "simple":
+                    self.G.nodes[node]["arm"].update_attributes_simple(
+                        agents, curr_time
+                    )
+                elif self.type == "robust":
+                    self.G.nodes[node]["arm"].update_attributes_robust(
+                        agents, curr_time
+                    )
 
             # Reset packages
             for agent in agents:
@@ -266,14 +273,11 @@ class MAB:
         # And each agent has yet to sample from their current vertex
         curr_time = 0
         curr_ep = 0
-        # curr_time, reward_per_turn = self._initialize(agents)
 
-        """BEGIN HACK"""
-        # JUST FOR NOW INITIALIZE EACH ARM TO HAVE JUST ONE SAMPLE
+        # INITIALIZE ARMS WITH ONE SAMPLE
         for arm in self.G:
-            self.G.nodes[arm]["arm"].update_attributes_hack()
+            self.G.nodes[arm]["arm"].update_attributes_hack(len(agents), self.type)
         reward_per_turn = []
-        """END HACK"""
 
         # List of transition intervals
         transition_intervals = []
@@ -282,8 +286,6 @@ class MAB:
         with tqdm(total=self.T) as pbar:
             while curr_time < self.T:
                 curr_ep += 1
-                # print("Episode {}".format(curr_ep))
-                # f.write("Starting Episode {}, Current time is {}\n".format(curr_ep, curr_time))
                 curr_time, new_rewards, trans_t, allocation = self._episode(
                     agents, curr_time
                 )

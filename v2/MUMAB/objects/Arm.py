@@ -49,9 +49,9 @@ class Arm:
         single_reward = self.get_reward()
         return single_reward
 
-    def update_attributes(self, agents, time):
-        total_episode_reward = 0  # Total episode reward
-        total_episode_counts = 0  # Total episode sampling counts
+    def update_attributes_robust(self, agents, time):
+        total_episode_reward = 0
+        total_episode_counts = 0
 
         sampling_intervals = []  # Intervals of when agents were sampling the arm
         earliest_obs = time  # Earliest time when an agent sampled
@@ -84,20 +84,49 @@ class Arm:
         self.num_samples += total_episode_counts
         self.total_reward += total_episode_reward
         self.estimated_mean = self.total_reward / self.num_samples
+        self.conf_radius = np.sqrt(
+            124 * len(agents) ** 2 * B3 * math.exp(1) * np.log(time) / self.num_pulls
+        )
+        self.ucb = self.estimated_mean + self.conf_radius
+
+    def update_attributes_simple(self, agents, time):
+        """
+        Update the arm's attributes with the simple communication protocol
+        Since simple assumes that all agents that pull the same arm get the same reward,
+        we can just use the reward of the first agent that pulled the arm
+        """
+        total_episode_reward = 0
+        total_episode_counts = 0
+
+        for i in len(range(agents[0].arm_list)):
+            for agent in agents:
+                if agent.arm_list[i] == self.id:
+                    total_episode_reward += agent.reward_list[i]
+                    total_episode_counts += 1
+                    break
+
+        self.num_pulls += total_episode_counts
+        self.num_samples += total_episode_counts
+        self.total_reward += total_episode_reward
+        self.estimated_mean = self.total_reward / self.num_samples
         self.conf_radius = np.sqrt(2 * np.log(time) / self.num_pulls)
         self.ucb = self.estimated_mean + self.conf_radius
 
-    """BEGIN HACK"""
-
-    def update_attributes_hack(self):
+    def update_attributes_hack(self, num_agents, type):
+        """
+        Update the arm's attributes during the hack initialization phase
+        Takes in agents and the type of algorithm (simple or robust)
+        """
         self.num_pulls = 1
         self.num_samples = 1
         self.total_reward = self.get_reward()
         self.estimated_mean = self.total_reward / self.num_samples
-        self.conf_radius = np.sqrt(2 * np.log(1) / self.num_pulls)
+        self.conf_radius = (
+            np.sqrt(124 * num_agents**2 * B3 * math.exp(1) * np.log(1) / self.num_pulls)
+            if type == "robust"
+            else np.sqrt(2 * B1 * np.log(1) / self.num_pulls)
+        )
         self.ucb = self.estimated_mean + self.conf_radius
-
-    """END HACK"""
 
     def pull_individual(self, time, agents, agent_ids):
         single_reward = self.get_reward()
