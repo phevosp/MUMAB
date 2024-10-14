@@ -15,7 +15,7 @@ import time
 import gurobipy as gp
 
 import MUMAB.objects as mobj
-from MUMAB.algorithms.Manager import Manager, plot_function_regrets
+from MUMAB.algorithms.Manager import Manager
 
 # Dictionary of implemented algorithms
 alg_names = {
@@ -26,7 +26,7 @@ alg_names = {
 
 def load_params():
     parser = argparse.ArgumentParser(description='MUMAB hyper parameters')
-    parser.add_argument('--T', type=int, default=10000)
+    parser.add_argument('--T', type=int, default=1000000)
     parser.add_argument('--K', type=int, default=100)
     parser.add_argument('--M', type=int, default=5)
     parser.add_argument('--p', type=float, default=0.05)
@@ -108,13 +108,13 @@ def initialize_graph(params):
 def setup_graph_interaction(G, function_type, params):
     # Assign each vertex an associated arm
     for i in G:
-        G.nodes[i]['arm'] = mobj.Arm(i, mobj.MultiAgentInteraction.getFunction(i, function_type, params), params.K, random=False)
+        G.nodes[i]['arm'] = mobj.Arm(i, mobj.MultiAgentInteraction.getFunction(i, function_type, params), params.K)
         G.nodes[i]['id']  = i
         G.nodes[i]['prev_node'] = G.nodes[i]
 
     G_ = G.copy()
     for i in G:
-        G_.nodes[i]['arm'] = mobj.ArmIndividual(i, mobj.MultiAgentInteraction.getFunction(i, function_type, params), params.K, params.M, random=False)
+        G_.nodes[i]['arm'] = mobj.ArmIndividual(i, mobj.MultiAgentInteraction.getFunction(i, function_type, params), params.K, params.M)
     return G, G_
 
 
@@ -130,9 +130,7 @@ def main():
         G = G_.copy()
         G, Gindv = setup_graph_interaction(G, ftype, params)
         manager = Manager(params, G, Gindv)
-        regret_results = manager.evaluate_algs(output_dir, regret_results, ftype)
-
-    plot_function_regrets(params, regret_results)
+        manager.evaluate_algs(output_dir, regret_results, ftype)
 
 if __name__ == '__main__':
     main()

@@ -166,3 +166,5 @@ v2/old_outputs/
 
 # These files because they are annoying
 *.pyc
+
+output/

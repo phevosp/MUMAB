@@ -24,12 +24,9 @@ class Arm:
         reset:         resets the arm's attributes
     """
 
-    def __init__(self, id, interaction, K, random=False):
+    def __init__(self, id, interaction, K):
         self.id: int = id
-        if random:
-            self.true_mean: float = random.random() * 0.75 + 0.25
-        else:
-            self.true_mean: float = 0.25 + (self.id * 0.75) / (K - 1)
+        self.true_mean: float = random.random() * 0.85
         self.num_pulls: int = (
             0  # Number of pulls, to be used when calculating confidence radius
         )
@@ -43,7 +40,7 @@ class Arm:
         self.interaction: MultiAgentInteractionInterface = interaction
 
     def get_reward(self):
-        return np.clip(np.random.normal(loc=self.true_mean, scale=0.05), 0, 2)
+        return np.clip(np.random.normal(loc=self.true_mean, scale=0.1), 0, 1)
 
     def pull(self, num_agents):
         single_reward = self.get_reward()
@@ -84,9 +81,8 @@ class Arm:
         self.num_samples += total_episode_counts
         self.total_reward += total_episode_reward
         self.estimated_mean = self.total_reward / self.num_samples
-        self.conf_radius = np.sqrt(
-            124 * len(agents) ** 2 * math.exp(1) * np.log(time) / self.num_pulls
-        )
+        M = len(agents)
+        self.conf_radius = np.sqrt(2 * M**2 * np.log(time) / self.num_pulls)
         self.ucb = self.estimated_mean + self.conf_radius
 
     def update_attributes_simple(self, agents, time):
@@ -141,8 +137,8 @@ class Arm:
 
 
 class ArmIndividual:
-    def __init__(self, id, interaction, K, M, random=False):
-        self.Arms = [Arm(id, interaction, K, random) for _ in range(M)]
+    def __init__(self, id, interaction, K, M):
+        self.Arms = [Arm(id, interaction, K) for _ in range(M)]
         self.id = id
 
     def update_attributes(self, agent, time):

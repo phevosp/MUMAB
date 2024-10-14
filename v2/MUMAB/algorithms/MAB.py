@@ -246,7 +246,7 @@ class MAB:
 
         return curr_time, rew_per_turn, trans_t, allocation
 
-    def run(self, f):
+    def run(self, max_reward_per_turn):
         # Reset arms
         for i in self.G:
             self.G.nodes[i]["arm"].reset()
@@ -296,15 +296,8 @@ class MAB:
         pbar.close()
 
         # Get results
-        for node in self.G.nodes():
-            arm = self.G.nodes[node]["arm"]
-            f.write("\nArm " + str(arm.id))
-            f.write("\nTrue Mean: " + str(arm.true_mean))
-            f.write("\nEstimated Mean: " + str(arm.estimated_mean))
-            f.write("\nUCB Value: " + str(arm.ucb))
-            f.write("\nNum Pulls: " + str(arm.num_pulls))
-
-        return reward_per_turn, curr_time, transition_intervals, episode_allocations
+        regret = max_reward_per_turn - np.array(reward_per_turn)
+        return regret
 
 
 
@@ -381,6 +374,8 @@ class MAB_INDV:
         return G_directed
     
     def _time_step(self, agents, curr_time):
+        reward = 0
+        locations = {}
         for agent in agents:
             if not agent.at_target_pose():
                 agent.move()
@@ -388,13 +383,28 @@ class MAB_INDV:
                 if agent.sampled_episode_req():
                     self.plan_on_agent(agent, curr_time)                    
                     agent.move()
-            reward = self.G.nodes[agent.current_node["id"]]["arm"].Arms[agent.id].get_reward()
-            agent.sample(reward)
+            if agent.current_node["id"] in locations:
+                locations[agent.current_node["id"]].append(agent)
+            else:
+                locations[agent.current_node["id"]] = [agent]
+
+        total_reward = 0
+        for loc in locations:
+            arm = self.G.nodes[loc]["arm"].Arms[locations[loc][0].id]                
+            reward = arm.pull(len(locations[loc]))
+            for agent in locations[loc]:
+                agent.sample(reward)
+            
+            total_reward += (
+                arm.interaction.function(len(locations[loc])) * reward
+            )
+
+        return total_reward
                 
                 
 
 
-    def run(self, f):
+    def run(self, max_reward_per_turn):
         # Reset arms
         for i in self.G:
             self.G.nodes[i]["arm"].reset()
@@ -425,14 +435,12 @@ class MAB_INDV:
         # INITIALIZE ARMS WITH ONE SAMPLE
         for arm in self.G:
             self.G.nodes[arm]["arm"].update_attributes_hack()
-        reward_per_turn = []
 
-        # List of transition intervals
-        transition_intervals = []
-
-        episode_allocations = []
+        regret = []
         for t in tqdm(range(self.T)):
-            self._time_step(agents, t)
+            reward = self._time_step(agents, t)
+            regret.append(max_reward_per_turn - reward)
+        return regret
 
 
 def getMAB(type, G, G_, params):

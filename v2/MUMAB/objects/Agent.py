@@ -112,7 +112,7 @@ class Agent:
         if random.random() < self.sample_prob * (
             self.sample_gamma**self.num_sample_failures
         ):
-            sample = nl(self.bias + true, self.std_dev, 1)[0]
+            sample = true + np.clip(nl(self.bias, scale=self.std_dev), -1, 1)
         else:
             self.num_sample_failures += 1
             sample = None
