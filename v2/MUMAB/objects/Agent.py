@@ -112,14 +112,15 @@ class Agent:
         if random.random() < self.sample_prob * (
             self.sample_gamma**self.num_sample_failures
         ):
-            sample = true + np.clip(nl(self.bias, scale=self.std_dev), -1, 1)
+            sample = true + np.clip(nl(self.bias, scale=self.std_dev), -0.5, 0.5)
+            if self.at_target_pose():
+                self.episode_sample_count += 1
         else:
             self.num_sample_failures += 1
             sample = None
 
         self.arm_list.append(self.current_node["arm"].id)
         self.reward_list.append(sample)
-        self.episode_sample_count += 1
 
     def define_package(self):
         assert self.arm_intervals == {}

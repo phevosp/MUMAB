@@ -2,7 +2,7 @@ import numpy as np
 import random
 from MUMAB.objects.MultiAgentInteraction import MultiAgentInteractionInterface
 import math
-
+import copy
 
 class Arm:
     """
@@ -26,7 +26,7 @@ class Arm:
 
     def __init__(self, id, interaction, K):
         self.id: int = id
-        self.true_mean: float = random.random() * 0.85
+        self.true_mean: float = random.random() * 0.75
         self.num_pulls: int = (
             0  # Number of pulls, to be used when calculating confidence radius
         )
@@ -82,7 +82,7 @@ class Arm:
         self.total_reward += total_episode_reward
         self.estimated_mean = self.total_reward / self.num_samples
         M = len(agents)
-        self.conf_radius = np.sqrt(2 * M**2 * np.log(time) / self.num_pulls)
+        self.conf_radius = np.sqrt(8 * M**2 * np.log(time) / self.num_pulls)
         self.ucb = self.estimated_mean + self.conf_radius
 
     def update_attributes_simple(self, agents, time):
@@ -97,9 +97,10 @@ class Arm:
         for i in range(len(agents[0].arm_list)):
             for agent in agents:
                 if agent.arm_list[i] == self.id:
-                    total_episode_reward += agent.reward_list[i]
-                    total_episode_counts += 1
-                    break
+                    if not math.isnan(agent.reward_list[i]):
+                        total_episode_reward += agent.reward_list[i]
+                        total_episode_counts += 1
+                        break
 
         self.num_pulls += total_episode_counts
         self.num_samples += total_episode_counts
@@ -118,7 +119,7 @@ class Arm:
         self.total_reward = self.get_reward()
         self.estimated_mean = self.total_reward / self.num_samples
         self.conf_radius = (
-            np.sqrt(124 * num_agents**2 * math.exp(1) * np.log(1) / self.num_pulls)
+            np.sqrt(8 * num_agents**2 * np.log(1) / self.num_pulls)
             if type == "robust"
             else np.sqrt(2 * np.log(1) / self.num_pulls)
         )
@@ -137,9 +138,9 @@ class Arm:
 
 
 class ArmIndividual:
-    def __init__(self, id, interaction, K, M):
-        self.Arms = [Arm(id, interaction, K) for _ in range(M)]
-        self.id = id
+    def __init__(self, Arm, M):
+        self.Arms = [copy.deepcopy(Arm) for _ in range(M)]
+        self.id = Arm.id
 
     def update_attributes(self, agent, time):
         self.Arms[agent.id].update_attributes_simple([agent], time)

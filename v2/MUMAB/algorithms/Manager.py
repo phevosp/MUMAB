@@ -7,6 +7,7 @@ import sys
 
 import numpy as np
 from tqdm import tqdm
+import pickle 
 
 
 class Manager:
@@ -44,11 +45,17 @@ class Manager:
 
 
             # Open results file
-            regret_trial = mab_alg.run(max_reward_per_turn)
+            regret_trial, transition_intervals = mab_alg.run(max_reward_per_turn)
             regrets[trial] = regret_trial
+            
 
         output_file = f"{output_dir}{alg_name}.csv"
         np.savetxt(output_file, regrets, delimiter=",")
+
+        output_file = f"{output_dir}{alg_name}_intervals.csv"
+        np.savetxt(output_file, np.array(transition_intervals), delimiter=",")
+
+        
 
     def evaluate_algs(self, output_dir, regret, ftype):
 

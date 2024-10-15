@@ -20,8 +20,8 @@ from MUMAB.algorithms.Manager import Manager
 # Dictionary of implemented algorithms
 alg_names = {
     'simple': 'Simple-Multi-G-UCB',
-    'robust': 'Multi-G-UCB',
-    'indv': 'Individual-Multi-G-UCB'
+    'robust': 'Robust-Multi-G-UCB',
+    'indv': 'Indv-Multi-G-UCB'
 }
 
 def load_params():
@@ -114,7 +114,7 @@ def setup_graph_interaction(G, function_type, params):
 
     G_ = G.copy()
     for i in G:
-        G_.nodes[i]['arm'] = mobj.ArmIndividual(i, mobj.MultiAgentInteraction.getFunction(i, function_type, params), params.K, params.M)
+        G_.nodes[i]['arm'] = mobj.ArmIndividual(G.nodes[i]['arm'], params.M)
     return G, G_
 
 

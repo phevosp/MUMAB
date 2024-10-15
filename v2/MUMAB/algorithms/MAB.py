@@ -45,6 +45,12 @@ class MAB:
             )
         return rew_this_turn
 
+    def all_agents_sampled(self, agents):
+        sampled = True
+        for agent in agents:
+            sampled = sampled and agent.sampled_episode_req()
+        return sampled
+
     def _episode(self, agents, curr_time):
         """
         Runs one episode of the algorithm.
@@ -171,7 +177,10 @@ class MAB:
                 ):
                     baseline_agent = agent
 
-        theoretical_max_episode = baseline_agent.get_path_len() + 2 * baseline_pulls - 1
+        theoretical_max_episode = baseline_agent.get_path_len() + baseline_pulls - 1
+        for agent in agents:
+            agent.set_sample_req(baseline_pulls)
+        
 
         # determines transition time interval, starts at the current time and goes until the minimum of self.T or curr_time + max_path_length
         trans_t = [curr_time, 0]
@@ -183,11 +192,15 @@ class MAB:
             if self.type == "robust"
             else theoretical_max_episode * (self.params.alpha + 1)
         )
-
+            
+        episode_not_over = (curr_time - trans_t[0]) < episode_len_bound
+        if self.type == "simple":            
+            episode_not_over = not self.all_agents_sampled(agents)
+        
         while (
             not all_agents_reached
             and curr_time < self.T
-            and (curr_time - trans_t[0]) < episode_len_bound
+            and episode_not_over
         ):
             curr_time += 1
             # arm_dict will be the set of arms that are visited at the current time
@@ -214,6 +227,12 @@ class MAB:
             # arm_dict is number of agents on each arm
             # arm_dict_agents is the agents at each arm
             rew_per_turn.append(self._step(arm_dict, arm_dict_agents, curr_time))
+        
+        
+            episode_not_over = (curr_time - trans_t[0]) < episode_len_bound
+            if self.type == "simple":            
+                episode_not_over = not self.all_agents_sampled(agents)
+
 
         # Update end of transition interval
         trans_t[1] = min(curr_time, self.T - 1)
@@ -235,9 +254,17 @@ class MAB:
         if self.G.nodes[baseline_arm]["arm"] not in arm_dict:
             assert curr_time == self.T or (curr_time - trans_t[0]) == episode_len_bound
 
-        while (curr_time - trans_t[0]) < episode_len_bound and curr_time < self.T:
+        episode_not_over = (curr_time - trans_t[0]) < episode_len_bound
+        if self.type == "simple":            
+            episode_not_over = not self.all_agents_sampled(agents)
+
+        while episode_not_over and curr_time < self.T:
             curr_time += 1
             rew_per_turn.append(self._step(arm_dict, arm_dict_agents, curr_time))
+
+            episode_not_over = (curr_time - trans_t[0]) < episode_len_bound
+            if self.type == "simple":            
+                episode_not_over = not self.all_agents_sampled(agents)
 
         # for tracking agent movement over time
         allocation = []
@@ -297,7 +324,7 @@ class MAB:
 
         # Get results
         regret = max_reward_per_turn - np.array(reward_per_turn)
-        return regret
+        return regret, transition_intervals
 
 
 
@@ -350,10 +377,8 @@ class MAB_INDV:
                     print(G_directed.edges[u, v]["weight"])
             assert False
             
-        agent.set_target_path(shortest_path[optimal_arm])
-        
-        episode_sample = agent.get_path_len() + 2*self.G.nodes[optimal_arm]['arm'].Arms[agent.id].num_samples
-        agent.set_sample_req(episode_sample)
+        agent.set_target_path(shortest_path[optimal_arm])        
+        agent.set_sample_req(self.G.nodes[optimal_arm]['arm'].Arms[agent.id].num_samples)
         
 
     def get_G_directed(self, agent_id, selected_arm):
@@ -440,7 +465,7 @@ class MAB_INDV:
         for t in tqdm(range(self.T)):
             reward = self._time_step(agents, t)
             regret.append(max_reward_per_turn - reward)
-        return regret
+        return regret, None
 
 
 def getMAB(type, G, G_, params):
