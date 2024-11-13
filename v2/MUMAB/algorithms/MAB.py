@@ -188,9 +188,9 @@ class MAB:
         all_agents_reached = False
 
         episode_len_bound = (
-            theoretical_max_episode
+            theoretical_max_episode * (self.params.alpha + 1)
             if self.type == "robust"
-            else theoretical_max_episode * (self.params.alpha + 1)
+            else theoretical_max_episode
         )
             
         episode_not_over = (curr_time - trans_t[0]) < episode_len_bound
