@@ -45,7 +45,7 @@ class Agent:
         move_alpha,
         move_beta,
         sample_alpha,
-        sample_beta
+        sample_beta,
     ):
         # Agent attributes
         self.id: int = id
@@ -70,7 +70,7 @@ class Agent:
 
         self.num_sample_failures = 0
         self.num_move_failures = 0
-        
+
         self.sample_req = 0
         self.episode_sample_count = 0
 
@@ -85,12 +85,17 @@ class Agent:
         self.arm_intervals = {}  # Intervals sent to centralizer
         self.arm_means = {}  # Means sent to centralizer
 
+        # Variables specific to UCRL2 implementation
+        self.policy = {}
+
     def move(self):
         if len(self.path) == 0:
             return
         move_prob = self.move_prob
         if self.move_alpha is not None:
-            move_prob = self.move_prob * np.exp(-(self.num_move_failures/self.move_alpha)**self.move_beta)
+            move_prob = self.move_prob * np.exp(
+                -((self.num_move_failures / self.move_alpha) ** self.move_beta)
+            )
         if random.random() < move_prob:
             self.current_node = self.G.nodes[self.path[0]]
             self.path = self.path[1:]
@@ -117,7 +122,9 @@ class Agent:
         """
         sample_prob = self.sample_prob
         if self.sample_alpha is not None:
-            sample_prob  =self.sample_prob * np.exp(-(self.num_sample_failures/self.sample_alpha)**self.sample_beta)
+            sample_prob = self.sample_prob * np.exp(
+                -((self.num_sample_failures / self.sample_alpha) ** self.sample_beta)
+            )
         if random.random() < sample_prob:
             sample = true + np.clip(nl(self.bias, scale=self.std_dev), -0.5, 0.5)
             if self.at_target_pose():
@@ -177,3 +184,10 @@ class Agent:
     def set_sample_req(self, sample_req):
         self.episode_sample_count = 0
         self.sample_req = sample_req
+
+    def set_policy(self, policy):
+        self.policy = policy
+
+    def move_via_policy(self):
+        assert self.policy
+        self.current_node = self.G.nodes[self.policy[self.current_node["id"]]]

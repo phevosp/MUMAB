@@ -7,7 +7,7 @@ import sys
 
 import numpy as np
 from tqdm import tqdm
-import pickle 
+import pickle
 
 
 class Manager:
@@ -43,19 +43,15 @@ class Manager:
         for trial in range(self.params.num_trials):
             print(f"Running Trial {trial}")
 
-
             # Open results file
             regret_trial, transition_intervals = mab_alg.run(max_reward_per_turn)
             regrets[trial] = regret_trial
-            
 
         output_file = f"{output_dir}{alg_name}.csv"
         np.savetxt(output_file, regrets, delimiter=",")
 
         output_file = f"{output_dir}{alg_name}_intervals.csv"
         np.savetxt(output_file, np.array(transition_intervals), delimiter=",")
-
-        
 
     def evaluate_algs(self, output_dir, regret, ftype):
 
@@ -117,7 +113,7 @@ class Manager:
 
         # Run algorithm num_times for each algorithmic type (min, median, max)
         for name, type in zip(self.params.alg_names, self.params.alg_types):
-            
+
             # Call evaluate_type on specific algorithm
             self._evaluate_type(
                 max_reward_per_turn,

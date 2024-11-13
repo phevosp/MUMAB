@@ -7,7 +7,7 @@
         {
             "name": "Python Debugger: Current File",
             "type": "debugpy",
-            "python": "/home/anaveen/.conda/envs/mab/bin/python",
+            // "python": "/home/anaveen/.conda/envs/mab/bin/python",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal"
@@ -19,16 +19,16 @@
         "program": "${workspaceFolder}/v2/main.py",
         "console": "integratedTerminal",
         "args": [
-            "--alg_types", "indv",
-            "--num_trials", "3",
-            "--K", "50",
-            "--p", "0.05",
-            "--M", "4",
-            "--T", "1000000",
-            "--function_types", "power",
-            "--numer", "15",
-            "--denom", "16",
-            "--agent_std_dev", "0.3", "0.33", "0.36", "0.4"
+            "--alg_types", "UCRL2",
+            // "--num_trials", "3",
+            // "--K", "50",
+            // "--p", "0.05",
+            // "--M", "4",
+            // "--T", "1000000",
+            // "--function_types", "power",
+            // "--numer", "15",
+            // "--denom", "16",
+            // "--agent_std_dev", "0.3", "0.33", "0.36", "0.4"
         ]
         }
     ]

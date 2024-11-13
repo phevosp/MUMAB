@@ -21,7 +21,8 @@ from MUMAB.algorithms.Manager import Manager
 alg_names = {
     'simple': 'Simple-Multi-G-UCB',
     'robust': 'Robust-Multi-G-UCB',
-    'indv': 'Indv-Multi-G-UCB'
+    'indv': 'Indv-Multi-G-UCB',
+    'UCRL2': 'UCRL2',
 }
 
 def load_params():
@@ -46,6 +47,7 @@ def load_params():
     parser.add_argument('--agent_move_beta', nargs='+', type=float, default = None)
     parser.add_argument('--agent_sample_beta', nargs='+', type=float, default = None)
     parser.add_argument('--alpha', type=float, default=0)
+    parser.add_argument('--delta', type=float, default=0.01) # confidence parameter of UCRL2
     parser.add_argument('options', default=None, nargs=argparse.REMAINDER)
     params = parser.parse_args()
 
