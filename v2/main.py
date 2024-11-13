@@ -41,8 +41,10 @@ def load_params():
     parser.add_argument('--agent_bias', nargs='+', type=float, default = None)
     parser.add_argument('--agent_move_prob', nargs='+', type=float, default = None)
     parser.add_argument('--agent_sample_prob', nargs='+', type=float, default = None)
-    parser.add_argument('--agent_move_gamma', nargs='+', type=float, default = None)
-    parser.add_argument('--agent_sample_gamma', nargs='+', type=float, default=None)
+    parser.add_argument('--agent_move_alpha', nargs='+', type=float, default = None)
+    parser.add_argument('--agent_sample_alpha', nargs='+', type=float, default = None)
+    parser.add_argument('--agent_move_beta', nargs='+', type=float, default = None)
+    parser.add_argument('--agent_sample_beta', nargs='+', type=float, default = None)
     parser.add_argument('--alpha', type=float, default=0)
     parser.add_argument('options', default=None, nargs=argparse.REMAINDER)
     params = parser.parse_args()
@@ -83,11 +85,17 @@ def load_params():
     if params.agent_sample_prob is None:
         params.agent_sample_prob = np.ones(params.M, )
 
-    if params.agent_move_gamma is None:
-        params.agent_move_gamma = np.ones(params.M, )
+    if params.agent_sample_alpha is None:
+        params.agent_sample_alpha = params.M * [None]
 
-    if params.agent_sample_gamma is None:
-        params.agent_sample_gamma = np.ones(params.M, )
+    if params.agent_move_alpha is None:
+        params.agent_move_alpha = params.M * [None]
+
+    if params.agent_sample_beta is None:
+        params.agent_sample_beta = params.M * [None]
+
+    if params.agent_move_beta is None:
+        params.agent_move_beta = params.M * [None]
 
     params.alg_names = [alg_names[type] for type in params.alg_types]
     return params

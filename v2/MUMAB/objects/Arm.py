@@ -82,7 +82,7 @@ class Arm:
         self.total_reward += total_episode_reward
         self.estimated_mean = self.total_reward / self.num_samples
         M = len(agents)
-        self.conf_radius = np.sqrt(8 * M**2 * np.log(time) / self.num_pulls)
+        self.conf_radius = np.sqrt(2 * M**2 * np.log(time) / self.num_pulls)
         self.ucb = self.estimated_mean + self.conf_radius
 
     def update_attributes_simple(self, agents, time):
@@ -119,7 +119,7 @@ class Arm:
         self.total_reward = self.get_reward()
         self.estimated_mean = self.total_reward / self.num_samples
         self.conf_radius = (
-            np.sqrt(8 * num_agents**2 * np.log(1) / self.num_pulls)
+            np.sqrt(2 * num_agents**2 * np.log(1) / self.num_pulls)
             if type == "robust"
             else np.sqrt(2 * np.log(1) / self.num_pulls)
         )
