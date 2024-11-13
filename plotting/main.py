@@ -7,7 +7,7 @@ import pickle
 
 def load_params():
     parser = argparse.ArgumentParser(description='MUMAB hyper parameters')
-    parser.add_argument('--data_folder', default="/home/anaveen/Documents/research_ws/MUMAB/output/2000000-50-4/constant", type=str)
+    parser.add_argument('--data_folder', default="/home/anaveen/Documents/research_ws/MUMAB/output/3500000-50-4/constant", type=str)
     params = parser.parse_args()
     return params
 
@@ -16,13 +16,10 @@ def main():
     # List all CSV files
     csv_files = [f for f in os.listdir(params.data_folder) if f.endswith('.csv') and 'intervals' not in f]
 
-    csv_files = ['Simple-Multi-G-UCB.csv']
     palette = sns.color_palette()
     
     for i, f in enumerate(csv_files):
         regrets = np.loadtxt(f"{params.data_folder}/{f}", delimiter=",", dtype=float, ndmin=2)
-        transition_interval = np.loadtxt(f"{params.data_folder}/{f[:-4]}_intervals.csv", delimiter=",", dtype=float, ndmin=2)
-
             
         cumulative_regrets = np.cumsum(regrets, axis=1)
         mean_fit = np.mean(cumulative_regrets, axis=0)
@@ -30,12 +27,12 @@ def main():
         max_fit = np.max(cumulative_regrets, axis=0)
         T = regrets.shape[1]
         plt.plot(range(T), mean_fit, alpha = 0.9, color= palette[i], label = f[:-4])
-        # plt.fill_between(range(T), min_fit, max_fit,
-        #                         color='gray', alpha=0.2)
+        plt.fill_between(range(T), min_fit, max_fit,
+                                color='gray', alpha=0.2)
 
-        time = np.arange(0, T)
-        for interval in transition_interval:
-            plt.fill_between(time,0, mean_fit, where=(time >= interval[0]) & (time <= interval[1]), color = 'gray')
+        # time = np.arange(0, T)
+        # for interval in transition_interval:
+        #     plt.fill_between(time,0, mean_fit, where=(time >= interval[0]) & (time <= interval[1]), color = 'gray')
 
         
     plt.xlabel("Time")

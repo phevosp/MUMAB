@@ -42,8 +42,10 @@ class Agent:
         bias,
         move_prob,
         sample_prob,
-        move_gamma,
-        sample_gamma,
+        move_alpha,
+        move_beta,
+        sample_alpha,
+        sample_beta
     ):
         # Agent attributes
         self.id: int = id
@@ -59,10 +61,12 @@ class Agent:
         self.bias = bias
 
         self.move_prob = move_prob
-        self.move_gamma = move_gamma
+        self.move_alpha = move_alpha
+        self.move_beta = move_beta
 
         self.sample_prob = sample_prob
-        self.sample_gamma = sample_gamma
+        self.sample_alpha = sample_alpha
+        self.sample_beta = sample_beta
 
         self.num_sample_failures = 0
         self.num_move_failures = 0
@@ -84,8 +88,10 @@ class Agent:
     def move(self):
         if len(self.path) == 0:
             return
-
-        if random.random() < self.move_prob * (self.move_gamma**self.num_move_failures):
+        move_prob = self.move_prob
+        if self.move_alpha is not None:
+            move_prob = self.move_prob * np.exp(-(self.num_move_failures/self.move_alpha)**self.move_beta)
+        if random.random() < move_prob:
             self.current_node = self.G.nodes[self.path[0]]
             self.path = self.path[1:]
 
@@ -109,9 +115,10 @@ class Agent:
             gamma is the growth rate,
             n is the number of failures
         """
-        if random.random() < self.sample_prob * (
-            self.sample_gamma**self.num_sample_failures
-        ):
+        sample_prob = self.sample_prob
+        if self.sample_alpha is not None:
+            sample_prob  =self.sample_prob * np.exp(-(self.num_sample_failures/self.sample_alpha)**self.sample_beta)
+        if random.random() < sample_prob:
             sample = true + np.clip(nl(self.bias, scale=self.std_dev), -0.5, 0.5)
             if self.at_target_pose():
                 self.episode_sample_count += 1

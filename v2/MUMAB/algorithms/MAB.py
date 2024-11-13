@@ -288,8 +288,10 @@ class MAB:
                 self.params.agent_bias[i],
                 self.params.agent_move_prob[i],
                 self.params.agent_sample_prob[i],
-                self.params.agent_move_gamma[i],
-                self.params.agent_sample_gamma[i],
+                self.params.agent_move_alpha[i],
+                self.params.agent_move_beta[i],
+                self.params.agent_sample_alpha[i],
+                self.params.agent_sample_beta[i]
             )
             for i in range(self.M)
         ]
@@ -444,8 +446,10 @@ class MAB_INDV:
                 self.params.agent_bias[i],
                 self.params.agent_move_prob[i],
                 self.params.agent_sample_prob[i],
-                self.params.agent_move_gamma[i],
-                self.params.agent_sample_gamma[i],
+                self.params.agent_move_alpha[i],
+                self.params.agent_move_beta[i],
+                self.params.agent_sample_alpha[i],
+                self.params.agent_sample_beta[i]
             )
             for i in range(self.M)
         ]
