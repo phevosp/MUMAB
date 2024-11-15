@@ -7,7 +7,7 @@ import pickle
 
 def load_params():
     parser = argparse.ArgumentParser(description='MUMAB hyper parameters')
-    parser.add_argument('--data_folder', default="/home/anaveen/Documents/research_ws/MUMAB/output/3500000-50-4/constant", type=str)
+    parser.add_argument('--data_folder', default="C:/Users/phevo/Documents/Harvard/Research/RL/Multi-G-UCB/v2/output/1000000-20-5/log", type=str)
     params = parser.parse_args()
     return params
 
