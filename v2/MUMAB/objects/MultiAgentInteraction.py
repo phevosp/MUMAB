@@ -22,6 +22,8 @@ class LogMultiAgentInteraction(MultiAgentInteractionInterface):
         self.M: int = M
 
     def function(self, x):
+        if x == 0:
+            return 0
         return (
             np.emath.logn(self.log_base, self.alpha * x + 1 / (self.log_base)) + 1
         ) / (np.emath.logn(self.log_base, self.alpha + 1 / (self.log_base)) + 1)
@@ -235,6 +237,8 @@ class PowerMultiAgentInteraction(MultiAgentInteractionInterface):
         self.denom: int = denom
 
     def function(self, x):
+        if x == 0:
+            return 0
         return x ** (self.numer / self.denom)
 
     def add_constraints(self, m, store_vars):

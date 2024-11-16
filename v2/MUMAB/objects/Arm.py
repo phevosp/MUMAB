@@ -4,6 +4,7 @@ from MUMAB.objects.MultiAgentInteraction import MultiAgentInteractionInterface
 import math
 import copy
 
+
 class Arm:
     """
     Arm class for multi-armed bandit problem
@@ -109,10 +110,31 @@ class Arm:
         self.conf_radius = np.sqrt(2 * np.log(time) / self.num_pulls)
         self.ucb = self.estimated_mean + self.conf_radius
 
-    def update_attributes_hack(self, num_agents, type):
+    def update_attributes_UCRL2(self, agents, time, num_arms, num_edges, delta):
+        total_episode_reward = 0
+        total_episode_counts = 0
+
+        for i in range(len(agents[0].arm_list)):
+            for agent in agents:
+                if agent.arm_list[i] == self.id:
+                    if not math.isnan(agent.reward_list[i]):
+                        total_episode_reward += agent.reward_list[i]
+                        total_episode_counts += 1
+                        break
+
+        self.num_pulls += total_episode_counts
+        self.num_samples += total_episode_counts
+        self.total_reward += total_episode_reward
+        self.estimated_mean = self.total_reward / self.num_samples
+        self.conf_radius = np.sqrt(
+            7 * np.log(time * num_arms * num_edges / delta) / (2 * self.num_pulls)
+        )
+        self.ucb = self.estimated_mean + self.conf_radius
+
+    def update_attributes_hack(self, num_agents, type, num_arms, num_edges, delta):
         """
         Update the arm's attributes during the hack initialization phase
-        Takes in agents and the type of algorithm (simple or robust)
+        Takes in agents and the type of algorithm (simple or robust or UCRL2)
         """
         self.num_pulls = 1
         self.num_samples = 1
@@ -121,7 +143,13 @@ class Arm:
         self.conf_radius = (
             np.sqrt(2 * num_agents**2 * np.log(1) / self.num_pulls)
             if type == "robust"
-            else np.sqrt(2 * np.log(1) / self.num_pulls)
+            else (
+                np.sqrt(2 * np.log(1) / self.num_pulls)
+                if type == "simple"
+                else np.sqrt(
+                    7 * np.log(1 * num_arms * num_edges / delta) / (2 * self.num_pulls)
+                )
+            )
         )
         self.ucb = self.estimated_mean + self.conf_radius
 
@@ -144,7 +172,7 @@ class ArmIndividual:
 
     def update_attributes(self, agent, time):
         self.Arms[agent.id].update_attributes_simple([agent], time)
-        
+
     def update_attributes_hack(self):
         for arm in self.Arms:
             arm.update_attributes_hack(1, "simple", 0, 0, 0)
@@ -152,5 +180,3 @@ class ArmIndividual:
     def reset(self):
         for arm in self.Arms:
             arm.reset()
-    
- 
