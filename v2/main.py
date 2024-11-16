@@ -19,9 +19,11 @@ from MUMAB.algorithms.Manager import Manager
 
 # Dictionary of implemented algorithms
 alg_names = {
-    'simple': 'Simple-Multi-G-UCB',
+    'simple': 'Multi-G-UCB',
     'robust': 'Robust-Multi-G-UCB',
-    'indv': 'Indv-Multi-G-UCB'
+    'indv': 'Indv-Multi-G-UCB',
+    'UCRL2': 'Multi-UCRL2',
+    'max': 'Max-Multi-G-UCB',
 }
 
 def load_params():
@@ -46,6 +48,8 @@ def load_params():
     parser.add_argument('--agent_move_beta', nargs='+', type=float, default = None)
     parser.add_argument('--agent_sample_beta', nargs='+', type=float, default = None)
     parser.add_argument('--alpha', type=float, default=0)
+    parser.add_argument('--delta', type=float, default=0.01) # confidence parameter of UCRL2
+    parser.add_argument('--output_flag', type=str, default="")
     parser.add_argument('options', default=None, nargs=argparse.REMAINDER)
     params = parser.parse_args()
 
@@ -62,7 +66,7 @@ def load_params():
 
     # Generate default output directory
     if params.output_dirs is None:
-        params.output_dir = f"output/{params.T}-{params.K}-{params.M}/"
+        params.output_dir = f"output/{params.output_flag}/"
         params.output_dirs = [f"{params.output_dir}{func}/" for func in params.function_types]
 
     # Create directories

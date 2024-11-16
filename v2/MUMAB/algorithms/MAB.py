@@ -22,7 +22,7 @@ from .utils.OptimalDistribution import optimal_distribution
 
 class MAB:
     def __init__(self, type, G, params):
-        self.type = type  # algorithm type {robust or simple}
+        self.type = type  # algorithm type {simple, robust, max, or UCRL2}
         self.params = params
         self.G = G
         self.T = params.T
@@ -64,7 +64,7 @@ class MAB:
 
             # Update UCB values from previous episode/initialization
             for node in self.G:
-                if self.type == "simple":
+                if self.type == "simple" or self.type == "max":
                     self.G.nodes[node]["arm"].update_attributes_simple(
                         agents, curr_time
                     )
@@ -72,6 +72,9 @@ class MAB:
                     self.G.nodes[node]["arm"].update_attributes_robust(
                         agents, curr_time
                     )
+                else:
+                    # Throw error
+                    assert False, "Invalid algorithm type"
 
             # Reset packages
             for agent in agents:
@@ -99,7 +102,11 @@ class MAB:
         sorted_by_pulls = sorted(
             sampled_nodes, key=lambda x: self.G.nodes[x]["arm"].num_pulls
         )
-        baseline_arm = sorted_by_pulls[0]
+        if self.type == "max":
+            baseline_arm = sorted_by_pulls[-1]
+        else:
+            baseline_arm = sorted_by_pulls[0]
+
         baseline_pulls = self.G.nodes[baseline_arm]["arm"].num_pulls
 
         # Note maximum ucb value for edge
@@ -194,7 +201,7 @@ class MAB:
         )
             
         episode_not_over = (curr_time - trans_t[0]) < episode_len_bound
-        if self.type == "simple":            
+        if self.type != "robust":
             episode_not_over = not self.all_agents_sampled(agents)
         
         while (
@@ -230,7 +237,7 @@ class MAB:
         
         
             episode_not_over = (curr_time - trans_t[0]) < episode_len_bound
-            if self.type == "simple":            
+            if self.type != "robust":
                 episode_not_over = not self.all_agents_sampled(agents)
 
 
@@ -255,7 +262,7 @@ class MAB:
             assert curr_time == self.T or (curr_time - trans_t[0]) == episode_len_bound
 
         episode_not_over = (curr_time - trans_t[0]) < episode_len_bound
-        if self.type == "simple":            
+        if self.type != "robust":
             episode_not_over = not self.all_agents_sampled(agents)
 
         while episode_not_over and curr_time < self.T:
@@ -263,7 +270,7 @@ class MAB:
             rew_per_turn.append(self._step(arm_dict, arm_dict_agents, curr_time))
 
             episode_not_over = (curr_time - trans_t[0]) < episode_len_bound
-            if self.type == "simple":            
+            if self.type != "robust":
                 episode_not_over = not self.all_agents_sampled(agents)
 
         # for tracking agent movement over time

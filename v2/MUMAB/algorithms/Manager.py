@@ -52,8 +52,9 @@ class Manager:
         output_file = f"{output_dir}{alg_name}.csv"
         np.savetxt(output_file, regrets, delimiter=",")
 
-        output_file = f"{output_dir}{alg_name}_intervals.csv"
-        np.savetxt(output_file, np.array(transition_intervals), delimiter=",")
+        if transition_intervals:
+            output_file = f"{output_dir}{alg_name}_intervals.csv"
+            np.savetxt(output_file, np.array(transition_intervals), delimiter=",")
 
         
 

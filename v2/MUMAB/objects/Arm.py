@@ -147,7 +147,7 @@ class ArmIndividual:
         
     def update_attributes_hack(self):
         for arm in self.Arms:
-            arm.update_attributes_hack(1, "simple")
+            arm.update_attributes_hack(1, "simple", 0, 0, 0)
 
     def reset(self):
         for arm in self.Arms:
