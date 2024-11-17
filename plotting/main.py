@@ -10,8 +10,16 @@ def load_params():
     parser = argparse.ArgumentParser(description="MUMAB hyper parameters")
     parser.add_argument(
         "--data_folder",
-        default="C:/Users/phevo/Documents/Harvard/Research/RL/Multi-G-UCB/v2/output/output",
+        # default="C:/Users/phevo/Documents/Harvard/Research/RL/Multi-G-UCB/v2/output/final_tests/output/baseline/log",
+        default="C:/Users/phevo/Documents/Harvard/Research/RL/Multi-G-UCB/v2/output/final_tests/output/noise",
         type=str,
+    )
+    parser.add_argument(
+        "--type",
+        type=str,
+        default="comparison",
+        choices=["comparison", "noise"],
+        help="Type of plot to generate"
     )
     params = parser.parse_args()
     return params
@@ -34,20 +42,25 @@ def main():
         )
 
         cumulative_regrets = np.cumsum(regrets, axis=1)
-        mean_fit = np.median(cumulative_regrets, axis=0)
+        random_trial = np.random.randint(cumulative_regrets.shape[0])
+        random_fit = cumulative_regrets[random_trial]
+        # mean_fit = np.mean(cumulative_regrets, axis=0)
         min_fit = np.min(cumulative_regrets, axis=0)
         max_fit = np.max(cumulative_regrets, axis=0)
         T = regrets.shape[1]
+        label = f[:-4]
+        label = (
+            " ".join([word.capitalize() for word in label.split("_")])
+            if params.type == "noise"
+            else label
+        )
         plt.plot(
             range(T),
-            mean_fit,
+            # mean_fit,
+            random_fit,
             alpha=0.9,
             color=palette[i],
-            label="$p^{(m)}_{i,t} = p^{(s)}_{i,t} = ."
-            + f.split("_")[2]
-            + "; \\sigma = ."
-            + f.split("_")[4]
-            + ".$",
+            label=label,
         )
         plt.fill_between(range(T), min_fit, max_fit, color="gray", alpha=0.2)
 
