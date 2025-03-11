@@ -28,6 +28,9 @@ alg_names = {
 
 
 def load_params():
+    """
+    Load hyperparameters from command line arguments
+    """
     parser = argparse.ArgumentParser(description="MUMAB hyper parameters")
     parser.add_argument("--T", type=int, default=1000000)
     parser.add_argument("--K", type=int, default=100)
@@ -128,7 +131,9 @@ def load_params():
 
 
 def initialize_graph(params):
-    # Generate graph based on number of arms and probabilities
+    """
+    Initialize a connected graph with K vertices and edge probability p
+    """
     G = nx.erdos_renyi_graph(params.K, params.p, seed=0)
     tries = 0
     while not nx.is_connected(G) and tries < 10:
@@ -139,7 +144,11 @@ def initialize_graph(params):
 
 
 def setup_graph_interaction(G, function_type, params):
-    # Assign each vertex an associated arm
+    """
+    Initialize the graph.
+    For each vertex, create an arm object with the corresponding function type.
+    Create also an individual arm type for use in the individual algorithm.
+    """
     for i in G:
         G.nodes[i]["arm"] = mobj.Arm(
             i,
@@ -156,6 +165,9 @@ def setup_graph_interaction(G, function_type, params):
 
 
 def main():
+    """
+    Main function to run the MUMAB algorithms
+    """
     params = load_params()
 
     G_ = initialize_graph(params)

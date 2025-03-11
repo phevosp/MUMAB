@@ -35,9 +35,7 @@ class MAB:
         for arm in arm_dict:
 
             for agent in arm_dict_agents[arm]:
-                # Observe reward
-                reward = arm.pull(arm_dict[arm])
-                agent.sample(reward)
+                agent.sample(arm.pull(arm_dict[arm]))
 
             # Add the theoretical reward per turn, assuming all agents sampled for fair comparison
             rew_this_turn += arm.interaction.function(arm_dict[arm]) * arm.true_mean
@@ -53,7 +51,7 @@ class MAB:
 
         iter_count = 0
 
-        #  max_iter: Hard upper-bound of the number of iterations, to ensure the algorithm does not fall into infinite loop
+        # max_iter: Hard upper-bound of the number of iterations, to ensure the algorithm does not fall into infinite loop
         max_iter = np.min([1e4, 1 / epsilon])
 
         while iter_count <= max_iter:
@@ -123,10 +121,7 @@ class MAB:
         episode_not_over = True
         while curr_time < self.T and episode_not_over:
             curr_time += 1
-            # arm_dict will be the set of arms that are visited at the current time
             arm_dict = {}
-
-            # the agents at the arm
             arm_dict_agents = {}
             for agent in agents:
                 # Move to next node via policy
@@ -149,8 +144,6 @@ class MAB:
                 ):
                     episode_not_over = False
 
-            # arm_dict is number of agents on each arm
-            # arm_dict_agents is the agents at each arm
             rew_per_turn.append(self._step(arm_dict, arm_dict_agents, curr_time))
 
         # for tracking agent movement over time
@@ -288,10 +281,7 @@ class MAB:
         # Execute transition
         while not all_agents_reached and curr_time < self.T and episode_not_over:
             curr_time += 1
-            # arm_dict will be the set of arms that are visited at the current time
             arm_dict = {}
-
-            # the agents at the arm
             arm_dict_agents = {}
 
             all_agents_reached = True
@@ -309,8 +299,6 @@ class MAB:
                     arm_dict[agent.current_node["arm"]] += 1
                     arm_dict_agents[agent.current_node["arm"]].append(agent)
 
-            # arm_dict is number of agents on each arm
-            # arm_dict_agents is the agents at each arm
             rew_per_turn.append(self._step(arm_dict, arm_dict_agents, curr_time))
 
             episode_not_over = not self._episode_pulls_req_met(sampled_nodes)
@@ -371,9 +359,7 @@ class MAB:
         # Each agent selects an unvisited arm and traverses to it and back
         while initialization_not_over:
             curr_time += 1
-            # arm_dict will be the set of arms that are visited at the current time
             arm_dict = {}
-            # the agents at the arm
             arm_dict_agents = {}
             for agent in agents:
                 if not agent.at_target_pose():
@@ -432,17 +418,16 @@ class MAB:
             for i in range(self.M)
         ]
 
-        # After the return from each function call, curr_time is the last time step that was run
-        curr_time = 0
-        curr_ep = 0
-        transition_intervals = []
-        episode_allocations = []
-        initialization_samples = 1 if self.type == "simple" else math.log(self.T)
         with tqdm(total=self.T) as pbar:
             # Initialize arms
+            # TO-DO: FIX DEFINITION OF INITIALIZATION_SAMPLES
+            initialization_samples = 1 if self.type == "simple" else math.log(self.T)
             curr_time, reward_per_turn = self._initialization(
                 agents, initialization_samples
             )
+            curr_ep = 0
+            transition_intervals = []
+            episode_allocations = []
             while curr_time < self.T:
                 curr_ep += 1
                 curr_time, new_rewards, trans_t, allocation = (

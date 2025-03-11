@@ -28,9 +28,16 @@ class Manager:
         output_dir,
         thresh=0.015,
     ):
-        # Goal: Given an algorithm type and a graph, evaluate the algorithm on the graph for num_trials trials
-        # Note: max_per_reward_turn is the maximum reward possible per-turn.
-        # Note: max_regret_per_turn is the maximum regret possible per-turn.
+        """
+        Evaluate a specific algorithm  on the problem instance
+        Inputs:
+            max_reward_per_turn: Maximum reward possible per-turn
+            max_regret_per_turn: Maximum regret possible per-turn
+            alg_type: Type of algorithm to evaluate
+            alg_name: Name of algorithm
+            best_alloc: Optimal allocation of arms
+            output_dir: Directory to save results
+        """
         mab_alg = getMAB(alg_type, self.G, self.Gindv, self.params)
 
         print(
@@ -54,13 +61,14 @@ class Manager:
             output_file = f"{output_dir}{alg_name}_intervals.csv"
             np.savetxt(output_file, np.array(transition_intervals), delimiter=",")
 
-    def evaluate_algs(self, output_dir, regret, ftype):
-
-        # Goal: Evaluate all algorithms for a particular function type
+    def evaluate_algs(self, output_dir):
+        """
+        Evaluate all algorithms
+        """
         for n in self.G.nodes():
             print(self.G.nodes[n]["arm"])
 
-        # Get theoretical max_per_turn and calculate max regret
+        # Get best and worst distributions
         best_dist, _ = optimal_distribution(
             [self.G.nodes[node]["arm"] for node in self.G.nodes()],
             self.params,
@@ -90,8 +98,7 @@ class Manager:
                 worst_dict = Counter(sampled_nodes)
             print(f"In {name} distribution, we sample nodes:", sampled_nodes)
 
-        # Given sampled nodes, calculate theoretical max and mins (using Gurobi reward was giving errors)
-
+        # Given best and worst distributions, calculate theoretical max and mins (using Gurobi reward was giving errors)
         max_reward_per_turn, min_reward_per_turn = 0, 0
         for key in best_dict:
             max_reward_per_turn += (

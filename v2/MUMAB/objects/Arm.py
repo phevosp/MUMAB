@@ -80,12 +80,12 @@ class Arm:
                         total_episode_reward += agent.reward_list[i]
                         total_episode_counts += 1
 
-        self.num_pulls += total_episode_counts
+        self.num_pulls += self.episode_pulls
         self.num_samples += total_episode_counts
         self.total_reward += total_episode_reward
         self.estimated_mean = self.total_reward / self.num_samples
         self.conf_radius = np.sqrt(
-            7 * np.log(time * num_arms * num_edges / delta) / (2 * self.num_pulls)
+            7 * np.log(time * num_arms * num_edges / delta) / (2 * self.num_samples)
         )
         self.ucb = self.estimated_mean + self.conf_radius
 
@@ -102,7 +102,7 @@ class Arm:
             np.sqrt(2 * np.log(1) / self.num_pulls)
             if type == "simple" or type == "robust"
             else np.sqrt(
-                7 * np.log(1 * num_arms * num_edges / delta) / (2 * self.num_pulls)
+                7 * np.log(1 * num_arms * num_edges / delta) / (2 * self.num_samples)
             )
         )
         self.ucb = self.estimated_mean + self.conf_radius

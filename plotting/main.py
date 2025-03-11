@@ -19,7 +19,7 @@ def load_params():
         type=str,
         default="comparison",
         choices=["comparison", "noise"],
-        help="Type of plot to generate"
+        help="Type of plot to generate",
     )
     params = parser.parse_args()
     return params
