@@ -283,7 +283,7 @@ class MAB:
             self.G.nodes[node]["arm"].set_episode_pulls_req(baseline_pulls)
 
         all_agents_reached = False
-        episode_not_over = not self.episode_pulls_req_met(sampled_nodes)
+        episode_not_over = not self._episode_pulls_req_met(sampled_nodes)
 
         # Execute transition
         while not all_agents_reached and curr_time < self.T and episode_not_over:
@@ -313,7 +313,7 @@ class MAB:
             # arm_dict_agents is the agents at each arm
             rew_per_turn.append(self._step(arm_dict, arm_dict_agents, curr_time))
 
-            episode_not_over = not self.episode_pulls_req_met(sampled_nodes)
+            episode_not_over = not self._episode_pulls_req_met(sampled_nodes)
 
         # Update end of transition interval
         trans_t[1] = min(curr_time, self.T - 1)
@@ -335,13 +335,13 @@ class MAB:
         if self.G.nodes[baseline_arm]["arm"] not in arm_dict:
             assert curr_time == self.T
 
-        episode_not_over = not self.episode_pulls_req_met(sampled_nodes)
+        episode_not_over = not self._episode_pulls_req_met(sampled_nodes)
 
         while episode_not_over and curr_time < self.T:
             curr_time += 1
             rew_per_turn.append(self._step(arm_dict, arm_dict_agents, curr_time))
 
-            episode_not_over = not self.episode_pulls_req_met(sampled_nodes)
+            episode_not_over = not self._episode_pulls_req_met(sampled_nodes)
 
         # for tracking agent movement over time
         allocation = []
@@ -366,7 +366,7 @@ class MAB:
         unvisited_arms = set(self.G.nodes) - set(current_nodes)
 
         # Define stopping condition
-        initialization_not_over = not self.episode_pulls_req_met(self.G.nodes)
+        initialization_not_over = not self._episode_pulls_req_met(self.G.nodes)
 
         # Each agent selects an unvisited arm and traverses to it and back
         while initialization_not_over:
@@ -380,7 +380,10 @@ class MAB:
                     agent.move()
                 else:
                     # If no more arms to visit, set a new destination and move
-                    if agent.get_current_node["arm"].episode_pulls_req_met():
+                    if (
+                        agent.get_current_node()["arm"].episode_pulls_req_met()
+                        and len(unvisited_arms) != 0
+                    ):
                         destination_node = unvisited_arms.pop()
                         # Calculate shortest path to destination
                         path = nx.shortest_path(
@@ -402,7 +405,7 @@ class MAB:
             # Update rewards
             rew_per_turn.append(self._step(arm_dict, arm_dict_agents, curr_time))
             # And check if initialization is over
-            initialization_not_over = not self.episode_pulls_req_met(self.G.nodes)
+            initialization_not_over = not self._episode_pulls_req_met(self.G.nodes)
 
         return curr_time, rew_per_turn
 
@@ -437,7 +440,9 @@ class MAB:
         initialization_samples = 1 if self.type == "simple" else math.log(self.T)
         with tqdm(total=self.T) as pbar:
             # Initialize arms
-            curr_time, reward_per_turn = self._initialization(agents, 1)
+            curr_time, reward_per_turn = self._initialization(
+                agents, initialization_samples
+            )
             while curr_time < self.T:
                 curr_ep += 1
                 curr_time, new_rewards, trans_t, allocation = (
@@ -467,17 +472,13 @@ class MAB_INDV:
     def _step(self, arm_dict, arm_dict_agents, curr_time):
         rew_this_turn = 0
         for arm in arm_dict:
-            # Pull the arm to get the true reward at time curr_time
-            true_single_reward = arm.pull(arm_dict[arm])
-
             for agent in arm_dict_agents[arm]:
                 # Observe reward
-                agent.sample(true_single_reward)
+                reward = arm.pull(arm_dict[arm])
+                agent.sample(reward)
 
             # Add the theoretical reward per turn, assuming all agents sampled for fair comparison
-            rew_this_turn += (
-                arm.interaction.function(arm_dict[arm]) * true_single_reward
-            )
+            rew_this_turn += arm.interaction.function(arm_dict[arm]) * arm.true_mean
         return rew_this_turn
 
     def plan_on_agent(self, agent, curr_time):
