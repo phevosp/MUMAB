@@ -112,7 +112,7 @@ class Manager:
         ## list of optimal arms
         optimal_dist = [key for key in best_dict]
 
-        # Run algorithm num_times for each algorithmic type (min, median, max)
+        # Run algorithm num_times for each algorithm
         for name, type in zip(self.params.alg_names, self.params.alg_types):
 
             # Call evaluate_type on specific algorithm

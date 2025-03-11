@@ -18,17 +18,19 @@ class Agent:
         std_dev:              float, std_dev for sensor noise
         bias:                 float, bias for sensor noise
         move_prob:            float, probability of succesfully moving to a new node
-        sample_prob:          float, probability of sampling.
-        move_gamma:           float, decay rate of move probability
-        sample_gamma:         float, decay rate of sample probability
+        move_alpha:           float, associated with exponential decay of sampling success probability
+        move_beta:            float, associated with exponential decay of sampling success probability
+        sample_prob:          float, probability of sampling succesfully
+        sample_alpha:         float, associated with exponential decay of sampling success probability
+        sample_beta:          float, associated with exponential decay of sampling success probability
         num_sample_failures:  int, number of times the agent has failed to sample
         num_move_failures:    int, number of times the agent has failed to move
+        pull_req:             int, number of pulls (succesful & unsuccesful samples) required to complete an episode
+        episode_pull_count:   int, number of pulls that the agent has completed in the current episode
         path:                 list, list of nodes that the agent must traverse to reach its target node
         G:                    networkX graph, the state graph
         arm_list:             list, list of arms that the agent has pulled during that episode
         reward_list:          list, list of rewards that the agent has received during that episode
-        arm_intervals:        dict, dictionary with keys the arms. Items are [a, b] where a is the first time step during which the agent pulled the arm and b is the first time step for which the agent pulled a different arm
-        arm_means:            dict, dictionary with keys the arms. Items are the mean rewards the agent recieved from that arm (ignoring sampling failures)
     Methods:
         move:           moves the agent to the inputted node
     """
@@ -71,8 +73,8 @@ class Agent:
         self.num_sample_failures = 0
         self.num_move_failures = 0
 
-        self.sample_req = 0
-        self.episode_sample_count = 0
+        self.pull_req = 0
+        self.episode_pull_count = 0
 
         self.path = []
 
@@ -81,9 +83,6 @@ class Agent:
         # Variables for communication protocol
         self.arm_list = []  # Keeps track of the visited arm throughout episode
         self.reward_list = []  # Keeps track of all rewards throughout the episode
-
-        self.arm_intervals = {}  # Intervals sent to centralizer
-        self.arm_means = {}  # Means sent to centralizer
 
         # Variables specific to UCRL2 implementation
         self.policy = {}
@@ -120,6 +119,7 @@ class Agent:
             gamma is the growth rate,
             n is the number of failures
         """
+        # Note and update probability of succesful sample
         sample_prob = self.sample_prob
         if self.sample_alpha is not None:
             sample_prob = self.sample_prob * np.exp(
@@ -127,8 +127,6 @@ class Agent:
             )
         if random.random() < sample_prob:
             sample = true + np.clip(nl(self.bias, scale=self.std_dev), -0.5, 0.5)
-            if self.at_target_pose():
-                self.episode_sample_count += 1
         else:
             self.num_sample_failures += 1
             sample = None
@@ -136,54 +134,26 @@ class Agent:
         self.arm_list.append(self.current_node["arm"].id)
         self.reward_list.append(sample)
 
+        # For individial MAB algorithm
+        if self.at_target_pose():
+            self.episode_pull_count += 1
+
     def define_package(self):
-        assert self.arm_intervals == {}
-        assert self.arm_means == {}
-
-        # Start by recreating intervals
-        for i, arm in enumerate(self.arm_list):
-            if i == 0 or arm != self.arm_list[i - 1]:
-                # This is a new arm. Should not have already been visited
-                try:
-                    assert arm not in self.arm_intervals
-                except:
-                    print(self.arm_intervals)
-                    print(arm)
-                    print(self.arm_list)
-                self.arm_intervals[arm] = [i, -1]
-
-                if i > 0:
-                    # Previous arm should exist and not have updated end time
-                    assert arm != self.arm_list[i - 1]
-                    assert self.arm_intervals[self.arm_list[i - 1]][1] == -1
-                    self.arm_intervals[self.arm_list[i - 1]][1] = i
-
-        # Update end time for last arm
-        self.arm_intervals[self.arm_list[-1]][1] = len(self.arm_list)
-
         # Convert to np.array; this also converts Nones to nans
         self.reward_list = np.array(self.reward_list, dtype=float)
 
-        # Now calculate means
-        for arm in self.arm_intervals:
-            self.arm_means[arm] = np.nanmean(
-                self.reward_list[
-                    self.arm_intervals[arm][0] : self.arm_intervals[arm][1]
-                ]
-            )
-
     def reset_package(self):
-        self.arm_intervals = {}
-        self.arm_means = {}
         self.arm_list = []
         self.reward_list = []
 
-    def sampled_episode_req(self):
-        return self.episode_sample_count >= self.sample_req
+    def episode_pulls_req(self):
+        # For individual MAB algorithm
+        return self.episode_pull_count >= self.pull_req
 
-    def set_sample_req(self, sample_req):
-        self.episode_sample_count = 0
-        self.sample_req = sample_req
+    def set_episode_pulls_req(self, pull_req):
+        # For individual MAB algorithm
+        self.episode_pull_count = 0
+        self.pull_req = pull_req
 
     def set_policy(self, policy):
         self.policy = policy
