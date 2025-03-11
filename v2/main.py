@@ -173,7 +173,6 @@ def main():
     G_ = initialize_graph(params)
     params.graph_diameter = nx.diameter(G_)
 
-    regret_results = {}
     for output_dir, ftype in zip(params.output_dirs, params.function_types):
         print(
             f"================================================================================Evaluating {ftype} Performance ================================================================================"
@@ -181,7 +180,7 @@ def main():
         G = G_.copy()
         G, Gindv = setup_graph_interaction(G, ftype, params)
         manager = Manager(params, G, Gindv)
-        manager.evaluate_algs(output_dir, regret_results, ftype)
+        manager.evaluate_algs(output_dir)
 
 
 if __name__ == "__main__":
