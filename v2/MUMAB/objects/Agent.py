@@ -146,7 +146,7 @@ class Agent:
         self.arm_list = []
         self.reward_list = []
 
-    def episode_pulls_req(self):
+    def episode_pulls_req_met(self):
         # For individual MAB algorithm
         return self.episode_pull_count >= self.pull_req
 
@@ -155,9 +155,23 @@ class Agent:
         self.episode_pull_count = 0
         self.pull_req = pull_req
 
+    def to_initialize(self):
+        # For individual MAB algorithm
+        # G will be G_indv so arms will be ArmIndividual
+        return {
+            node
+            for node in self.G.nodes
+            if (
+                node["arm"].Arms[self.id].num_pulls == 0
+                and node["arm"].Arms[self.id].episode_pulls == 0
+            )
+        }
+
     def set_policy(self, policy):
+        # For UCRL2
         self.policy = policy
 
     def move_via_policy(self):
+        # For UCRL2
         assert self.policy
         self.current_node = self.G.nodes[self.policy[self.current_node["id"]]]

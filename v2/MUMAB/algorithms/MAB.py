@@ -300,7 +300,6 @@ class MAB:
                     arm_dict_agents[agent.current_node["arm"]].append(agent)
 
             rew_per_turn.append(self._step(arm_dict, arm_dict_agents, curr_time))
-
             episode_not_over = not self._episode_pulls_req_met(sampled_nodes)
 
         # Update end of transition interval
@@ -328,7 +327,6 @@ class MAB:
         while episode_not_over and curr_time < self.T:
             curr_time += 1
             rew_per_turn.append(self._step(arm_dict, arm_dict_agents, curr_time))
-
             episode_not_over = not self._episode_pulls_req_met(sampled_nodes)
 
         # for tracking agent movement over time
@@ -418,10 +416,13 @@ class MAB:
             for i in range(self.M)
         ]
 
+        min_agent_sample_prob = min(self.params.agent_sample_prob)
+        robust_initialization_samples = 4 * math.log(self.T) / min_agent_sample_prob**2
         with tqdm(total=self.T) as pbar:
             # Initialize arms
-            # TO-DO: FIX DEFINITION OF INITIALIZATION_SAMPLES
-            initialization_samples = 1 if self.type == "simple" else math.log(self.T)
+            initialization_samples = (
+                1 if self.type == "simple" else robust_initialization_samples
+            )
             curr_time, reward_per_turn = self._initialization(
                 agents, initialization_samples
             )
@@ -467,19 +468,28 @@ class MAB_INDV:
         return rew_this_turn
 
     def plan_on_agent(self, agent, curr_time):
-        if curr_time > 0:
-            for node in self.G:
-                self.G.nodes[node]["arm"].update_attributes(agent, curr_time)
 
-        ucb_ranking = sorted(
-            self.G.nodes,
-            key=lambda x: self.G.nodes[x]["arm"].Arms[agent.id].ucb,
-            reverse=True,
-        )
-        optimal_arm = ucb_ranking[0]
+        # Update UCB values
+        agent.define_package()
+        for node in agent.arm_list:
+            self.G.nodes[node]["arm"].update_attributes(agent, curr_time)
+        agent.reset_package()
 
-        G_directed = self.get_G_directed(agent.id, optimal_arm)
+        try:
+            # If still in initialization
+            target_arm = agent.to_initialize().pop()
+            target_pulls = 1
+        except:
+            # Otherwise, episode
+            ucb_ranking = sorted(
+                self.G.nodes,
+                key=lambda x: self.G.nodes[x]["arm"].Arms[agent.id].ucb,
+                reverse=True,
+            )
+            target_arm = ucb_ranking[0]
+            target_pulls = self.G.nodes[target_arm]["arm"].Arms[agent.id].num_pulls
 
+        G_directed = self.get_G_directed(agent.id, target_arm)
         try:
             shortest_path = nx.shortest_path(
                 G_directed, source=agent.current_node["id"], weight="weight"
@@ -490,10 +500,8 @@ class MAB_INDV:
                     print(G_directed.edges[u, v]["weight"])
             assert False
 
-        agent.set_target_path(shortest_path[optimal_arm])
-        agent.set_episode_pulls_req(
-            self.G.nodes[optimal_arm]["arm"].Arms[agent.id].num_pulls
-        )
+        agent.set_target_path(shortest_path[target_arm])
+        agent.set_episode_pulls_req(target_pulls)
 
     def get_G_directed(self, agent_id, selected_arm):
         # Note maximum ucb value for edge
@@ -503,7 +511,7 @@ class MAB_INDV:
         # Edge weights are (max_ucb - ucb) where max_ucb is the UCB of the optimal arm
         G_directed = nx.DiGraph(self.G)
         for u, v in self.G.edges():
-            # Floating point errors incured so flooring at 0
+            # Floating point errors incurred so flooring at 0
             G_directed.edges[u, v]["weight"] = max(
                 max_ucb - self.G.nodes[v]["arm"].Arms[agent_id].ucb, 0
             )
@@ -519,7 +527,7 @@ class MAB_INDV:
             if not agent.at_target_pose():
                 agent.move()
             else:
-                if agent.episode_pulls_req():
+                if agent.episode_pulls_req_met():
                     self.plan_on_agent(agent, curr_time)
                     agent.move()
             if agent.current_node["id"] in locations:
@@ -567,10 +575,6 @@ class MAB_INDV:
         # And each agent has yet to sample from their current vertex
         curr_time = 0
         curr_ep = 0
-
-        # INITIALIZE ARMS WITH ONE SAMPLE
-        for arm in self.G:
-            self.G.nodes[arm]["arm"].update_attributes_hack()
 
         regret = []
         for t in tqdm(range(self.T)):

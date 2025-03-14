@@ -30,8 +30,8 @@ class Arm:
     def __init__(self, id, interaction, K):
         self.id: int = id
         self.true_mean: float = random.random() * 0.75
-        self.num_pulls: int = 0  # Number of succesful or unsuccesful samples
-        self.num_samples: int = 0  # Number of succesful samples
+        self.num_pulls: int = 0  # Number of successful or unsuccessful samples
+        self.num_samples: int = 0  # Number of successful samples
         self.total_reward: int = 0
         self.estimated_mean: int = 0
         self.conf_radius: int = 0
@@ -62,7 +62,7 @@ class Arm:
                         total_episode_reward += agent.reward_list[i]
                         total_episode_counts += 1
 
-        self.num_pulls += self.episode_pulls
+        self.num_pulls += self.episode_pulls  # Not used for indv
         self.num_samples += total_episode_counts
         self.total_reward += total_episode_reward
         self.estimated_mean = self.total_reward / self.num_samples
@@ -133,10 +133,6 @@ class ArmIndividual:
 
     def update_attributes(self, agent, time):
         self.Arms[agent.id].update_attributes([agent], time)
-
-    def update_attributes_hack(self):
-        for arm in self.Arms:
-            arm.update_attributes_hack(1, "simple", 0, 0, 0)
 
     def reset(self):
         for arm in self.Arms:
