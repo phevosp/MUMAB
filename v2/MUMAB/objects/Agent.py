@@ -17,15 +17,15 @@ class Agent:
         ucb_dict:             dict (arm_id : ucb), dictionary of arms that the agent has pulled and the upper confidence bound of each arm
         std_dev:              float, std_dev for sensor noise
         bias:                 float, bias for sensor noise
-        move_prob:            float, probability of succesfully moving to a new node
+        move_prob:            float, probability of successfully moving to a new node
         move_alpha:           float, associated with exponential decay of sampling success probability
         move_beta:            float, associated with exponential decay of sampling success probability
-        sample_prob:          float, probability of sampling succesfully
+        sample_prob:          float, probability of sampling successfully
         sample_alpha:         float, associated with exponential decay of sampling success probability
         sample_beta:          float, associated with exponential decay of sampling success probability
         num_sample_failures:  int, number of times the agent has failed to sample
         num_move_failures:    int, number of times the agent has failed to move
-        pull_req:             int, number of pulls (succesful & unsuccesful samples) required to complete an episode
+        pull_req:             int, number of pulls (successful & unsuccessful samples) required to complete an episode
         episode_pull_count:   int, number of pulls that the agent has completed in the current episode
         path:                 list, list of nodes that the agent must traverse to reach its target node
         G:                    networkX graph, the state graph
@@ -119,7 +119,7 @@ class Agent:
             gamma is the growth rate,
             n is the number of failures
         """
-        # Note and update probability of succesful sample
+        # Note and update probability of successful sample
         sample_prob = self.sample_prob
         if self.sample_alpha is not None:
             sample_prob = self.sample_prob * np.exp(
