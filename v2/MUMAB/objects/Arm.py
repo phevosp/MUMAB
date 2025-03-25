@@ -89,24 +89,6 @@ class Arm:
         )
         self.ucb = self.estimated_mean + self.conf_radius
 
-    def update_attributes_hack(self, num_agents, type, num_arms, num_edges, delta):
-        """
-        Update the arm's attributes during the hack initialization phase
-        Takes in agents and the type of algorithm (simple or robust or UCRL2)
-        """
-        self.num_pulls = 1
-        self.num_samples = 1
-        self.total_reward = self.get_reward()
-        self.estimated_mean = self.total_reward / self.num_samples
-        self.conf_radius = (
-            np.sqrt(2 * np.log(1) / self.num_pulls)
-            if type == "simple" or type == "robust"
-            else np.sqrt(
-                7 * np.log(1 * num_arms * num_edges / delta) / (2 * self.num_samples)
-            )
-        )
-        self.ucb = self.estimated_mean + self.conf_radius
-
     def __str__(self):
         return f"Arm {self.id}: True Mean = {self.true_mean}, Estimated Mean = {self.estimated_mean}, UCB = {self.ucb}, Num Pulls = {self.num_pulls}, Total Reward = {self.total_reward}"
 

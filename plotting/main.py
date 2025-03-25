@@ -11,7 +11,8 @@ def load_params():
     parser.add_argument(
         "--data_folder",
         # default="C:/Users/phevo/Documents/Harvard/Research/RL/Multi-G-UCB/v2/output/final_tests/output/baseline/log",
-        default="C:/Users/phevo/Documents/Harvard/Research/RL/Multi-G-UCB/v2/output/final_tests/output/noise",
+        # default="C:/Users/phevo/Documents/Harvard/Research/RL/Multi-G-UCB/v2/output/final_tests/output/noise",
+        default="C:/Users/phevo/Documents/Harvard/Research/RL/Multi-G-UCB/v2/output/log",
         type=str,
     )
     parser.add_argument(

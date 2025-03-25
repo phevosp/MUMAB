@@ -421,7 +421,7 @@ class MAB:
         with tqdm(total=self.T) as pbar:
             # Initialize arms
             initialization_samples = (
-                1 if self.type == "simple" else robust_initialization_samples
+                robust_initialization_samples if self.type == "robust" else 1
             )
             curr_time, reward_per_turn = self._initialization(
                 agents, initialization_samples
@@ -471,7 +471,7 @@ class MAB_INDV:
 
         # Update UCB values
         agent.define_package()
-        for node in agent.arm_list:
+        for node in set(agent.arm_list):
             self.G.nodes[node]["arm"].update_attributes(agent, curr_time)
         agent.reset_package()
 
@@ -542,7 +542,9 @@ class MAB_INDV:
             for agent in locations[loc]:
                 agent.sample(reward)
 
-            total_reward += arm.interaction.function(len(locations[loc])) * reward
+            total_reward += (
+                arm.interaction.function(len(locations[loc])) * arm.true_mean
+            )
 
         return total_reward
 
