@@ -22,6 +22,12 @@ def load_params():
         choices=["comparison", "noise"],
         help="Type of plot to generate",
     )
+    parser.add_argument(
+        "--zoom",
+        type=bool,
+        default=False,
+        help="Define zoomed axes",
+    )
     params = parser.parse_args()
     return params
 
@@ -35,9 +41,9 @@ def main():
         if f.endswith(".csv") and "intervals" not in f
     ]
 
-    palette = sns.color_palette()
+    palette = sns.color_palette("Set1", 5)
 
-    for i, f in enumerate(csv_files):
+    for i, f in enumerate(reversed(csv_files)):
         regrets = np.loadtxt(
             f"{params.data_folder}/{f}", delimiter=",", dtype=float, ndmin=2
         )
@@ -75,8 +81,14 @@ def main():
     plt.grid(True)
     plt.legend()
     plt.title("Cumulative regret as a function of time")
+    if params.zoom:
+        plt.xlim(0, 10**5)
+        plt.ylim(0, 10**4)
 
-    plt.show()
+    plt.savefig(
+        f"{params.data_folder}/cumulative_regret{'_zoom' if params.zoom else ''}.png"
+    )
+    # plt.show()
 
 
 if __name__ == "__main__":
