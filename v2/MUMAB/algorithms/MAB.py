@@ -35,7 +35,7 @@ class MAB:
         for arm in arm_dict:
 
             for agent in arm_dict_agents[arm]:
-                agent.sample(arm.pull(arm_dict[arm]))
+                agent.sample(arm.pull())
 
             # Add the theoretical reward per turn, assuming all agents sampled for fair comparison
             rew_this_turn += arm.interaction.function(arm_dict[arm]) * arm.true_mean
@@ -455,18 +455,6 @@ class MAB_INDV:
         self.K = params.K
         self.M = params.M
 
-    def _step(self, arm_dict, arm_dict_agents, curr_time):
-        rew_this_turn = 0
-        for arm in arm_dict:
-            for agent in arm_dict_agents[arm]:
-                # Observe reward
-                reward = arm.pull(arm_dict[arm])
-                agent.sample(reward)
-
-            # Add the theoretical reward per turn, assuming all agents sampled for fair comparison
-            rew_this_turn += arm.interaction.function(arm_dict[arm]) * arm.true_mean
-        return rew_this_turn
-
     def plan_on_agent(self, agent, curr_time):
 
         # Update UCB values
@@ -526,10 +514,9 @@ class MAB_INDV:
         for agent in agents:
             if not agent.at_target_pose():
                 agent.move()
-            else:
-                if agent.episode_pulls_req_met():
-                    self.plan_on_agent(agent, curr_time)
-                    agent.move()
+            elif agent.episode_pulls_req_met():
+                self.plan_on_agent(agent, curr_time)
+                agent.move()
             if agent.current_node["id"] in locations:
                 locations[agent.current_node["id"]].append(agent)
             else:
@@ -538,7 +525,7 @@ class MAB_INDV:
         total_reward = 0
         for loc in locations:
             arm = self.G.nodes[loc]["arm"].Arms[locations[loc][0].id]
-            reward = arm.pull(len(locations[loc]))
+            reward = arm.pull()
             for agent in locations[loc]:
                 agent.sample(reward)
 

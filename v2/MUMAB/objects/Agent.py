@@ -162,8 +162,8 @@ class Agent:
             node
             for node in self.G.nodes
             if (
-                node["arm"].Arms[self.id].num_pulls == 0
-                and node["arm"].Arms[self.id].episode_pulls == 0
+                self.G.nodes[node]["arm"].Arms[self.id].num_pulls == 0
+                and self.G.nodes[node]["arm"].Arms[self.id].episode_pulls == 0
             )
         }
 

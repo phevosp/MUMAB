@@ -43,7 +43,7 @@ class Arm:
     def get_reward(self):
         return np.clip(np.random.normal(loc=self.true_mean, scale=0.1), 0, 1)
 
-    def pull(self, num_agents):
+    def pull(self):
         single_reward = self.get_reward()
         self.episode_pulls += 1
         return single_reward
