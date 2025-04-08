@@ -11,7 +11,7 @@ def load_params():
     parser.add_argument(
         "--data_folder",
         # default="C:/Users/phevo/Documents/Harvard/Research/RL/Multi-G-UCB/v2/output/final_tests/output/baseline/log",
-        # default="C:/Users/phevo/Documents/Harvard/Research/RL/Multi-G-UCB/v2/output/final_tests/output/noise",
+        # default="C:/Users/phevo/Documents/Harvard/Research/RL/Multi-G-UCB/v2/output/final_tests/output/failures",
         default="C:/Users/phevo/Documents/Harvard/Research/RL/Multi-G-UCB/v2/output/log",
         type=str,
     )
@@ -19,7 +19,7 @@ def load_params():
         "--type",
         type=str,
         default="comparison",
-        choices=["comparison", "noise"],
+        choices=["comparison", "failures"],
         help="Type of plot to generate",
     )
     parser.add_argument(
@@ -41,9 +41,8 @@ def main():
         if f.endswith(".csv") and "intervals" not in f
     ]
 
-    palette = sns.color_palette("Set1", 5)
-
-    for i, f in enumerate(reversed(csv_files)):
+    palette = sns.color_palette("Set1", len(csv_files))
+    for i, f in enumerate(csv_files):
         regrets = np.loadtxt(
             f"{params.data_folder}/{f}", delimiter=",", dtype=float, ndmin=2
         )
@@ -57,9 +56,11 @@ def main():
         T = regrets.shape[1]
         label = f[:-4]
         label = (
-            " ".join([word.capitalize() for word in label.split("_")])
-            if params.type == "noise"
-            else label
+            " ".join(
+                [word.capitalize() for word in label[1:].split("_")]
+            )  # [1:] is a hack for ordering
+            if params.type == "failures"
+            else label[1:]  # [1:] is a hack for ordering
         )
         plt.plot(
             range(T),
@@ -85,10 +86,12 @@ def main():
         plt.xlim(0, 10**5)
         plt.ylim(0, 10**4)
 
-    plt.savefig(
-        f"{params.data_folder}/cumulative_regret{'_zoom' if params.zoom else ''}.png"
-    )
-    # plt.show()
+    if params.type == "comparison":
+        plt.savefig(
+            f"{params.data_folder}/cumulative_regret{'_zoom' if params.zoom else ''}.png"
+        )
+    else:
+        plt.show()
 
 
 if __name__ == "__main__":

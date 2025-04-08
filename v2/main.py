@@ -63,6 +63,7 @@ def load_params():
         "--delta", type=float, default=0.01
     )  # confidence parameter of UCRL2
     parser.add_argument("--output_flag", type=str, default="")
+    parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("options", default=None, nargs=argparse.REMAINDER)
     params = parser.parse_args()
 
@@ -127,6 +128,9 @@ def load_params():
         params.agent_move_beta = params.M * [None]
 
     params.alg_names = [alg_names[type] for type in params.alg_types]
+
+    if params.seed:
+        random.seed(params.seed)
     return params
 
 
