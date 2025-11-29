@@ -35,6 +35,12 @@ def load_params():
     parser.add_argument("--T", type=int, default=1000000)
     parser.add_argument("--K", type=int, default=100)
     parser.add_argument("--M", type=int, default=5)
+    parser.add_argument(
+        "--graph_type",
+        type=str,
+        default="erdos_renyi",
+        choices=["erdos_renyi", "sbm", "grid"],
+    )
     parser.add_argument("--p", type=float, default=0.05)
     parser.add_argument("--num_trials", type=int, default=10)
     parser.add_argument(
@@ -58,7 +64,9 @@ def load_params():
     parser.add_argument("--agent_sample_alpha", nargs="+", type=float, default=None)
     parser.add_argument("--agent_move_beta", nargs="+", type=float, default=None)
     parser.add_argument("--agent_sample_beta", nargs="+", type=float, default=None)
-    parser.add_argument("--alpha", type=float, default=0)
+    parser.add_argument(
+        "--alpha", type=float, default=0
+    )  # exponential decay of probabilities
     parser.add_argument(
         "--delta", type=float, default=0.01
     )  # confidence parameter of UCRL2
@@ -138,10 +146,29 @@ def initialize_graph(params):
     """
     Initialize a connected graph with K vertices and edge probability p
     """
-    G = nx.erdos_renyi_graph(params.K, params.p, seed=0)
+    # Define graph generation functions
+    graph_generators = {
+        "erdos_renyi": lambda s: nx.erdos_renyi_graph(params.K, params.p, seed=s),
+        # Hardcode sbm for 4 communities
+        "sbm": lambda s: nx.stochastic_block_model(
+            [params.K // 4, params.K // 4, params.K // 4, params.K // 4],
+            [
+                [0.05, 0.01, 0.01, 0.01],  #
+                [0.01, 0.05, 0.01, 0.01],
+                [0.01, 0.01, 0.05, 0.01],
+                [0.01, 0.01, 0.01, 0.05],
+            ],
+            seed=s,
+        ),
+        "grid": lambda _: nx.grid_2d_graph(
+            int(np.sqrt(params.K)), int(np.sqrt(params.K))
+        ),
+    }
+
+    G = graph_generators[params.graph_type](seed=0)
     tries = 0
     while not nx.is_connected(G) and tries < 10:
-        G = nx.erdos_renyi_graph(params.K, params.p, seed=tries)
+        G = graph_generators[params.graph_type](seed=tries + 1)
         tries += 1
     assert nx.is_connected(G)
     return G
