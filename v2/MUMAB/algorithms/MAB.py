@@ -276,7 +276,13 @@ class MAB:
             self.G.nodes[node]["arm"].set_episode_pulls_req(baseline_pulls)
 
         all_agents_reached = False
-        episode_not_over = not self._episode_pulls_req_met(sampled_nodes)
+        # For CombUCB, episodes terminate right after transition
+        # We cannot have the episode over before all agents reach their target
+        episode_not_over = (
+            not self._episode_pulls_req_met(sampled_nodes)
+            if self.type != "comb"
+            else True
+        )
 
         # Execute transition
         while not all_agents_reached and curr_time < self.T and episode_not_over:
@@ -300,7 +306,11 @@ class MAB:
                     arm_dict_agents[agent.current_node["arm"]].append(agent)
 
             rew_per_turn.append(self._step(arm_dict, arm_dict_agents, curr_time))
-            episode_not_over = not self._episode_pulls_req_met(sampled_nodes)
+            episode_not_over = (
+                not self._episode_pulls_req_met(sampled_nodes)
+                if self.type != "comb"
+                else True
+            )
 
         # Update end of transition interval
         trans_t[1] = min(curr_time, self.T - 1)
@@ -322,12 +332,22 @@ class MAB:
         if self.G.nodes[baseline_arm]["arm"] not in arm_dict:
             assert curr_time == self.T
 
-        episode_not_over = not self._episode_pulls_req_met(sampled_nodes)
+        test = episode_not_over
+        episode_not_over = (
+            not self._episode_pulls_req_met(sampled_nodes)
+            if self.type != "comb"
+            else True  # Recall, for CombUCB, we want to sample exactly once after transition
+        )
+        assert test == episode_not_over  # Silly test
 
         while episode_not_over and curr_time < self.T:
             curr_time += 1
             rew_per_turn.append(self._step(arm_dict, arm_dict_agents, curr_time))
-            episode_not_over = not self._episode_pulls_req_met(sampled_nodes)
+            episode_not_over = (
+                not self._episode_pulls_req_met(sampled_nodes)
+                if self.type != "comb"
+                else False  # Recall, for CombUCB, we want to sample exactly once after transition
+            )
 
         # for tracking agent movement over time
         allocation = []

@@ -24,6 +24,7 @@ alg_names = {
     "indv": "Indv-Multi-G-UCB",
     "UCRL2": "Multi-UCRL2",
     "max": "Max-Multi-G-UCB",
+    "comb": "Comb-UCB",
 }
 
 
@@ -165,10 +166,10 @@ def initialize_graph(params):
         ),
     }
 
-    G = graph_generators[params.graph_type](seed=0)
+    G = graph_generators[params.graph_type](0)
     tries = 0
     while not nx.is_connected(G) and tries < 10:
-        G = graph_generators[params.graph_type](seed=tries + 1)
+        G = graph_generators[params.graph_type](tries + 1)
         tries += 1
     assert nx.is_connected(G)
     return G
