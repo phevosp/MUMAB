@@ -20,8 +20,8 @@ class Manager:
 
     def _evaluate_type(
         self,
-        max_reward_per_turn,
-        max_regret_per_turn,
+        max_reward,
+        max_regret,
         alg_type,
         alg_name,
         best_alloc,
@@ -31,8 +31,8 @@ class Manager:
         """
         Evaluate a specific algorithm  on the problem instance
         Inputs:
-            max_reward_per_turn: Maximum reward possible per-turn
-            max_regret_per_turn: Maximum regret possible per-turn
+            max_reward: List of maximum rewards per-turn at each breakpoint
+            max_regret: List of maximum regrets per-turn at each breakpoint
             alg_type: Type of algorithm to evaluate
             alg_name: Name of algorithm
             best_alloc: Optimal allocation of arms
@@ -51,7 +51,7 @@ class Manager:
             print(f"Running Trial {trial}")
 
             # Open results file
-            regret_trial, transition_intervals = mab_alg.run(max_reward_per_turn)
+            regret_trial, transition_intervals = mab_alg.run(max_reward)
             regrets[trial] = regret_trial
 
         output_file = f"{output_dir}{alg_name}.csv"
@@ -63,69 +63,80 @@ class Manager:
 
     def evaluate_algs(self, output_dir):
         """
-        Evaluate all algorithms
+        Evaluate all algorithms.
+
         """
         for n in self.G.nodes():
             print(self.G.nodes[n]["arm"])
 
-        # Get best and worst distributions
-        best_dist, _ = optimal_distribution(
-            [self.G.nodes[node]["arm"] for node in self.G.nodes()],
-            self.params,
-            theoretical=True,
-            minimize=False,
-            debug=True,
-            output_dir=output_dir,
-        )
-        worst_dist, _ = optimal_distribution(
-            [self.G.nodes[node]["arm"] for node in self.G.nodes()],
-            self.params,
-            theoretical=True,
-            minimize=True,
-            debug=True,
-            output_dir=output_dir,
-        )
-        # Print best and worst distributions
-        for dist, name in zip([best_dist, worst_dist], ["Best", "Worst"]):
-            sampled_nodes = []
-            for node in self.G:
-                for _ in range(round(dist[f"x_{self.G.nodes[node]['arm'].id}"])):
-                    sampled_nodes.append(node)
-
-            if name == "Best":
-                best_dict = Counter(sampled_nodes)
-            else:
-                worst_dict = Counter(sampled_nodes)
-            print(f"In {name} distribution, we sample nodes:", sampled_nodes)
-
-        # Given best and worst distributions, calculate theoretical max and mins (using Gurobi reward was giving errors)
-        max_reward_per_turn, min_reward_per_turn = 0, 0
-        for key in best_dict:
-            max_reward_per_turn += (
-                self.G.nodes[key]["arm"].interaction.function(best_dict[key])
-                * self.G.nodes[key]["arm"].true_mean
+        # Calculate the maximum reward, maximum regret, and optimal distributions for each breakpoint
+        max_reward = [0 for _ in range(self.params.reward_breakpoints)]
+        max_regret = [0 for _ in range(self.params.reward_breakpoints)]
+        optimal_dist = [[] for _ in range(self.params.reward_breakpoints)]
+        for breakpoint in range(self.params.reward_breakpoints):
+            print(f"=================Breakpoint at {breakpoint}=================")
+            # Get best and worst distributions
+            best_dist, _ = optimal_distribution(
+                [self.G.nodes[node]["arm"] for node in self.G.nodes()],
+                self.params,
+                theoretical=True,
+                minimize=False,
+                debug=True,
+                output_dir=output_dir,
+                breakpoint=breakpoint,
             )
-        for key in worst_dict:
-            min_reward_per_turn += (
-                self.G.nodes[key]["arm"].interaction.function(worst_dict[key])
-                * self.G.nodes[key]["arm"].true_mean
+            worst_dist, _ = optimal_distribution(
+                [self.G.nodes[node]["arm"] for node in self.G.nodes()],
+                self.params,
+                theoretical=True,
+                minimize=True,
+                debug=True,
+                output_dir=output_dir,
+                breakpoint=breakpoint,
             )
+            # Print best and worst distributions
+            for dist, name in zip([best_dist, worst_dist], ["Best", "Worst"]):
+                sampled_nodes = []
+                for node in self.G:
+                    for _ in range(round(dist[f"x_{self.G.nodes[node]['arm'].id}"])):
+                        sampled_nodes.append(node)
 
-        max_regret_per_turn = max_reward_per_turn - min_reward_per_turn
-        print(
-            f"Maximum Per Turn: {max_reward_per_turn}, \nMinimum Per Turn: {min_reward_per_turn}, \nMax Regret: {max_regret_per_turn}"
-        )
+                if name == "Best":
+                    best_dict = Counter(sampled_nodes)
+                else:
+                    worst_dict = Counter(sampled_nodes)
+                print(f"In {name} distribution, we sample nodes:", sampled_nodes)
 
-        ## list of optimal arms
-        optimal_dist = [key for key in best_dict]
+            # Given best and worst distributions, calculate theoretical max and mins (using Gurobi reward was giving errors)
+            max_reward_per_turn, min_reward_per_turn = 0, 0
+            for key in best_dict:
+                max_reward_per_turn += (
+                    self.G.nodes[key]["arm"].interaction.function(best_dict[key])
+                    * self.G.nodes[key]["arm"].true_mean
+                )
+            for key in worst_dict:
+                min_reward_per_turn += (
+                    self.G.nodes[key]["arm"].interaction.function(worst_dict[key])
+                    * self.G.nodes[key]["arm"].true_mean
+                )
+
+            max_regret_per_turn = max_reward_per_turn - min_reward_per_turn
+            print(
+                f"Maximum Per Turn: {max_reward_per_turn}, \nMinimum Per Turn: {min_reward_per_turn}, \nMax Regret: {max_regret_per_turn}"
+            )
+            max_reward[breakpoint] = max_reward_per_turn
+            max_regret[breakpoint] = max_regret_per_turn
+
+            ## list of optimal arms
+            optimal_dist[breakpoint] = [key for key in best_dict]
 
         # Run algorithm num_times for each algorithm
         for name, type in zip(self.params.alg_names, self.params.alg_types):
 
             # Call evaluate_type on specific algorithm
             self._evaluate_type(
-                max_reward_per_turn,
-                max_regret_per_turn,
+                max_reward,
+                max_regret,
                 type,
                 name,
                 optimal_dist,

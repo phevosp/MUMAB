@@ -25,6 +25,8 @@ alg_names = {
     "UCRL2": "Multi-UCRL2",
     "max": "Max-Multi-G-UCB",
     "comb": "Comb-UCB",
+    "discount": "D-Multi-G-UCB",
+    "sliding": "SW-Multi-G-UCB",
 }
 
 
@@ -33,9 +35,13 @@ def load_params():
     Load hyperparameters from command line arguments
     """
     parser = argparse.ArgumentParser(description="MUMAB hyper parameters")
-    parser.add_argument("--T", type=int, default=1000000)
+    # Preliminaries
+    parser.add_argument("--T", type=int, default=500000)
     parser.add_argument("--K", type=int, default=100)
     parser.add_argument("--M", type=int, default=5)
+    parser.add_argument("--num_trials", type=int, default=10)
+
+    # Graph
     parser.add_argument(
         "--graph_type",
         type=str,
@@ -43,7 +49,14 @@ def load_params():
         choices=["erdos_renyi", "sbm", "grid"],
     )
     parser.add_argument("--p", type=float, default=0.05)
-    parser.add_argument("--num_trials", type=int, default=10)
+    parser.add_argument(
+        "--reward_breakpoints",
+        type=int,
+        default=1,
+        help="Number of breakpoints for time varying reward. Default to 1 (i.e., constant reward)",
+    )
+
+    # Weight Functions
     parser.add_argument(
         "--function_types",
         nargs="+",
@@ -52,10 +65,26 @@ def load_params():
     )
     parser.add_argument("--numer", nargs="+", default=[1])
     parser.add_argument("--denom", nargs="+", default=[2])
+
+    # Output
     parser.add_argument("--output_dirs", nargs="+")
+    parser.add_argument("--output_flag", type=str, default="")
+
+    # Algorithms
     parser.add_argument(
         "--alg_types", nargs="+", default=["indv"], choices=list(alg_names.keys())
     )
+    parser.add_argument(
+        "--delta", type=float, default=0.01
+    )  # confidence parameter of UCRL2
+    parser.add_argument(
+        "--sliding_window_size", type=int, required=False
+    )  # sliding window size for SW-Multi-G-UCB
+    parser.add_argument(
+        "--discount_factor", type=float, required=False
+    )  # discount factor for D-Multi-G-UCB
+
+    # Failures
     parser.add_argument("--normalized", type=bool, default=True)
     parser.add_argument("--agent_std_dev", nargs="+", type=float, default=None)
     parser.add_argument("--agent_bias", nargs="+", type=float, default=None)
@@ -68,10 +97,8 @@ def load_params():
     parser.add_argument(
         "--alpha", type=float, default=0
     )  # exponential decay of probabilities
-    parser.add_argument(
-        "--delta", type=float, default=0.01
-    )  # confidence parameter of UCRL2
-    parser.add_argument("--output_flag", type=str, default="")
+
+    # Miscellaneous
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("options", default=None, nargs=argparse.REMAINDER)
     params = parser.parse_args()
@@ -185,7 +212,8 @@ def setup_graph_interaction(G, function_type, params):
         G.nodes[i]["arm"] = mobj.Arm(
             i,
             mobj.MultiAgentInteraction.getFunction(i, function_type, params),
-            params.K,
+            params.T,
+            params.reward_breakpoints,
         )
         G.nodes[i]["id"] = i
         G.nodes[i]["prev_node"] = G.nodes[i]

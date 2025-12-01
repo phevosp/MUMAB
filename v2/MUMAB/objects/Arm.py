@@ -11,10 +11,15 @@ class Arm:
 
     Attributes:
         id:             int, unique identifier for arm
+        breakpoints:    int, number of breakpoints for non-stationary rewards
         true_mean:      float, true mean of the arm
-        num_pulls:      int, number of times the arm has been pulled
-        total_reward:   int, total reward accumulated from pulling arm. Only notes reward from single pull of arm
-        estimated_mean: int, estimated mean of the arm
+        pulls:          list, each entry is the number of times the arm was pulled at that time step
+        samples:        list, each entry is the number of successful samples at that time step
+        rewards:        list, each entry is the total reward accumulated at that time step
+        num_pulls:      int, total number of pulls of the arm
+        num_samples:    int, total number of successful samples of the arm
+        total_reward:   float, total reward accumulated from the arm
+        estimated_mean: float, estimated mean of the arm
         conf_radius:    int, confidence radius of the arm
         ucb:            int, upper confidence bound of the arm
         interaction:    function, function used to compute multiplicative benefit of multiple agents sampling the same arm
@@ -27,46 +32,102 @@ class Arm:
         reset:          resets the arm's attributes
     """
 
-    def __init__(self, id, interaction, K):
+    def __init__(self, id, interaction, T, breakpoints):
         self.id: int = id
-        self.true_mean: float = random.random() * 0.75
-        self.num_pulls: int = 0  # Number of successful or unsuccessful samples
-        self.num_samples: int = 0  # Number of successful samples
-        self.total_reward: int = 0
-        self.estimated_mean: int = 0
-        self.conf_radius: int = 0
-        self.ucb: int = 0
+        # Reward
+        self.breakpoints: int = breakpoints
+        self.true_mean: list = [random.random() * 0.75 for _ in range(breakpoints)]
+        # Statistics
+        self.pulls: list = [0 for _ in range(T)]  # Attempted samples
+        self.samples: list = [0 for _ in range(T)]  # Successful samples
+        self.rewards: list = [0 for _ in range(T)]  # Rewards
+        # Attributes
+        self.num_pulls: int = 0
+        self.num_samples: int = 0
+        self.total_reward: float = 0
+        self.estimated_mean: float = 0
+        self.conf_radius: float = 0
+        self.ucb: float = 0
+        # Interaction Function
         self.interaction: MultiAgentInteractionInterface = interaction
+        # Episode Statistics
         self.episode_pulls: int = 0
         self.episode_pulls_req: int = 0
 
-    def get_reward(self):
-        return np.clip(np.random.normal(loc=self.true_mean, scale=0.1), 0, 1)
+    def get_reward(self, curr_time, T):
+        """Returns reward of the arm as sampled by the agent
 
-    def pull(self):
-        single_reward = self.get_reward()
-        self.episode_pulls += 1
+        Args:
+            curr_time (int): Current time step for breakpoint calculation. Defaults to None.
+            T (int): Total time steps for breakpoint calculation. Defaults to None.
+
+        Returns:
+            float: The reward sampled from the arm.
+        """
+        index = (curr_time - 1) * self.breakpoints // T
+        mean = self.true_mean[index]
+
+        return np.clip(np.random.normal(loc=mean, scale=0.1), 0, 1)
+
+    def pull(self, time, T):
+        single_reward = self.get_reward(time, T)
+        self.pulls[time - 1] += 1
+        self.episode_pulls += 1  # Add to episode pull counter
         return single_reward
 
-    def update_attributes(self, agents, time):
+    def update_attributes(self, agents, time, K=None, sw=None, df=None):
         """
         Update the arm's attributes with the communication protocol
         """
-        total_episode_reward = 0
-        total_episode_counts = 0
-
-        for i in range(len(agents[0].arm_list)):
+        ep_len = len(agents[0].arm_list)
+        for i in range(ep_len):
             for agent in agents:
                 if agent.arm_list[i] == self.id:
                     if not math.isnan(agent.reward_list[i]):
-                        total_episode_reward += agent.reward_list[i]
-                        total_episode_counts += 1
+                        sample_time = time - (ep_len - i)
+                        self.rewards[sample_time] += agent.reward_list[i]
+                        self.samples[sample_time] += 1
 
-        self.num_pulls += self.episode_pulls  # Not used for indv
-        self.num_samples += total_episode_counts
-        self.total_reward += total_episode_reward
-        self.estimated_mean = self.total_reward / self.num_samples
-        self.conf_radius = np.sqrt(2 * np.log(time) / self.num_samples)
+        # For sliding window, only consider last sw samples
+        if sw:
+            # Get statistics
+            start_time = max(0, time - sw)
+            self.num_pulls = sum(self.pulls[start_time:time])
+            self.num_samples = sum(self.samples[start_time:time])
+            self.total_reward = sum(self.rewards[start_time:time])
+
+            # Calculate mean and confidence radius
+            self.estimated_mean = self.total_reward / self.num_samples
+            self.conf_radius = np.sqrt(2 * np.log(min(sw, time)) / self.num_samples)
+
+        # For discount factor, weight recent samples more
+        elif df:
+            # Get statistics
+            discounts = [df ** (time - t - 1) for t in range(time)]
+            self.num_pulls = sum(p * d for p, d in zip(self.pulls[:time], discounts))
+            self.num_samples = sum(
+                s * d for s, d in zip(self.samples[:time], discounts)
+            )
+            self.total_reward = sum(
+                r * d for r, d in zip(self.rewards[:time], discounts)
+            )
+
+            # Calculate mean and confidence radius
+            self.estimated_mean = self.total_reward / self.num_samples
+            self.conf_radius = np.sqrt(2 * np.log(1 / (1 - df)) / self.num_samples)
+
+        # For all other algorithms, consider all samples
+        else:
+            # Get statistics
+            self.num_pulls = sum(self.pulls[:time])
+            self.num_samples = sum(self.samples[:time])
+            self.total_reward = sum(self.rewards[:time])
+
+            # Calculate mean and confidence radius
+            self.estimated_mean = self.total_reward / self.num_samples
+            self.conf_radius = np.sqrt(2 * np.log(time) / self.num_samples)
+
+        # UCB Calculation
         self.ucb = self.estimated_mean + self.conf_radius
 
     def update_attributes_UCRL2(self, agents, time, num_arms, num_edges, delta):

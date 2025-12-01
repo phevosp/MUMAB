@@ -23,12 +23,31 @@ from .utils.OptimalDistribution import optimal_distribution
 
 class MAB:
     def __init__(self, type, G, params):
-        self.type = type  # algorithm type {simple, robust, max, or UCRL2}
+        self.type = (
+            type  # algorithm type {simple, robust, max, UCRL2, comb, discount, sliding}
+        )
         self.params = params
         self.G = G
         self.T = params.T
         self.K = params.K
         self.M = params.M
+        self.sw = (
+            getattr(params, "sliding_window_size", None)
+            if self.type == "sliding"
+            else None
+        )
+        self.df = (
+            getattr(params, "discount_factor", None)
+            if self.type == "discount"
+            else None
+        )
+
+        assert not (
+            self.type == "sliding" and self.sw is None
+        ), "Sliding window size must be specified for SW-Multi-G-UCB"
+        assert not (
+            self.type == "discount" and self.df is None
+        ), "Discount factor must be specified for D-Multi-G-UCB"
 
     def _step(self, arm_dict, arm_dict_agents, curr_time):
         rew_this_turn = 0
@@ -174,7 +193,9 @@ class MAB:
 
             # Update UCB values from previous episode/initialization
             for node in self.G:
-                self.G.nodes[node]["arm"].update_attributes(agents, curr_time)
+                self.G.nodes[node]["arm"].update_attributes(
+                    agents, curr_time, self.K, self.sw, self.df
+                )
 
             # Reset packages
             for agent in agents:
@@ -276,12 +297,10 @@ class MAB:
             self.G.nodes[node]["arm"].set_episode_pulls_req(baseline_pulls)
 
         all_agents_reached = False
-        # For CombUCB, episodes terminate right after transition
-        # We cannot have the episode over before all agents reach their target
         episode_not_over = (
             not self._episode_pulls_req_met(sampled_nodes)
             if self.type != "comb"
-            else True
+            else True  # CombUCB: All agents sample exactly once after transition
         )
 
         # Execute transition
@@ -309,7 +328,7 @@ class MAB:
             episode_not_over = (
                 not self._episode_pulls_req_met(sampled_nodes)
                 if self.type != "comb"
-                else True
+                else True  # CombUCB: All agents sample exactly once after transition
             )
 
         # Update end of transition interval
@@ -336,7 +355,7 @@ class MAB:
         episode_not_over = (
             not self._episode_pulls_req_met(sampled_nodes)
             if self.type != "comb"
-            else True  # Recall, for CombUCB, we want to sample exactly once after transition
+            else True  # Recall, for CombUCB, all agents sample exactly once after transition
         )
         assert test == episode_not_over  # Silly test
 
@@ -346,7 +365,7 @@ class MAB:
             episode_not_over = (
                 not self._episode_pulls_req_met(sampled_nodes)
                 if self.type != "comb"
-                else False  # Recall, for CombUCB, we want to sample exactly once after transition
+                else False  # Recall, for CombUCB, all agents sample exactly once after transition
             )
 
         # for tracking agent movement over time
@@ -413,7 +432,7 @@ class MAB:
 
         return curr_time, rew_per_turn
 
-    def run(self, max_reward_per_turn):
+    def run(self, max_reward: list):
         # Reset arms
         for i in self.G:
             self.G.nodes[i]["arm"].reset()
@@ -463,6 +482,9 @@ class MAB:
         pbar.close()
 
         # Get results
+        max_reward_per_turn = np.array(
+            [max_reward[t * len(max_reward) // self.T] for t in range(self.T)]
+        )
         regret = max_reward_per_turn - np.array(reward_per_turn)
         return regret, transition_intervals
 

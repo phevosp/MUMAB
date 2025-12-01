@@ -134,7 +134,7 @@ class Agent:
         self.arm_list.append(self.current_node["arm"].id)
         self.reward_list.append(sample)
 
-        # For individial MAB algorithm
+        # For individual MAB algorithm
         if self.at_target_pose():
             self.episode_pull_count += 1
 
