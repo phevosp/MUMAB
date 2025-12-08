@@ -74,9 +74,9 @@ class Manager:
         max_regret = [0 for _ in range(self.params.reward_breakpoints)]
         optimal_dist = [[] for _ in range(self.params.reward_breakpoints)]
         for breakpoint in range(self.params.reward_breakpoints):
-            print(f"=================Breakpoint at {breakpoint}=================")
+            print(f"=================Breakpoint {breakpoint}=================")
             # Get best and worst distributions
-            best_dist, _ = optimal_distribution(
+            best_dist, _, _ = optimal_distribution(
                 [self.G.nodes[node]["arm"] for node in self.G.nodes()],
                 self.params,
                 theoretical=True,
@@ -85,7 +85,7 @@ class Manager:
                 output_dir=output_dir,
                 breakpoint=breakpoint,
             )
-            worst_dist, _ = optimal_distribution(
+            worst_dist, _, _ = optimal_distribution(
                 [self.G.nodes[node]["arm"] for node in self.G.nodes()],
                 self.params,
                 theoretical=True,
@@ -112,12 +112,12 @@ class Manager:
             for key in best_dict:
                 max_reward_per_turn += (
                     self.G.nodes[key]["arm"].interaction.function(best_dict[key])
-                    * self.G.nodes[key]["arm"].true_mean
+                    * self.G.nodes[key]["arm"].true_mean[breakpoint]
                 )
             for key in worst_dict:
                 min_reward_per_turn += (
                     self.G.nodes[key]["arm"].interaction.function(worst_dict[key])
-                    * self.G.nodes[key]["arm"].true_mean
+                    * self.G.nodes[key]["arm"].true_mean[breakpoint]
                 )
 
             max_regret_per_turn = max_reward_per_turn - min_reward_per_turn

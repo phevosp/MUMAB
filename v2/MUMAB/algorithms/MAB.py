@@ -54,10 +54,13 @@ class MAB:
         for arm in arm_dict:
 
             for agent in arm_dict_agents[arm]:
-                agent.sample(arm.pull())
+                agent.sample(arm.pull(curr_time, self.T))
 
             # Add the theoretical reward per turn, assuming all agents sampled for fair comparison
-            rew_this_turn += arm.interaction.function(arm_dict[arm]) * arm.true_mean
+            rew_this_turn += (
+                arm.interaction.function(arm_dict[arm])
+                * arm.true_mean[(curr_time - 1) * arm.breakpoints // self.T]
+            )
         return rew_this_turn
 
     def _evi_value_iteration(self, destination_map, epsilon):
@@ -205,8 +208,10 @@ class MAB:
         rew_per_turn = []
 
         # Compute optimal distribution
-        distribution, _ = optimal_distribution(
-            [self.G.nodes[node]["arm"] for node in self.G], self.params
+        distribution, _, has_multiple_solutions = optimal_distribution(
+            [self.G.nodes[node]["arm"] for node in self.G],
+            self.params,
+            find_multiple_solutions=True,
         )
 
         # Create list of sampled nodes
@@ -373,7 +378,7 @@ class MAB:
         for agent in agents:
             allocation.append(agent.current_node["arm"].id)
 
-        return curr_time, rew_per_turn, trans_t, allocation
+        return curr_time, rew_per_turn, trans_t, allocation, has_multiple_solutions
 
     def _initialization(self, agents, num_samples):
         """
@@ -468,9 +473,10 @@ class MAB:
             curr_ep = 0
             transition_intervals = []
             episode_allocations = []
+            mult_sols_count = 0
             while curr_time < self.T:
                 curr_ep += 1
-                curr_time, new_rewards, trans_t, allocation = (
+                curr_time, new_rewards, trans_t, allocation, has_multiple_solutions = (
                     self._episode(agents, curr_time)
                     if self.type != "UCRL2"
                     else self._episode_UCRL2(agents, curr_time)
@@ -478,6 +484,8 @@ class MAB:
                 reward_per_turn += new_rewards
                 transition_intervals.append(trans_t)
                 episode_allocations.append(allocation)
+                if has_multiple_solutions:
+                    mult_sols_count += 1
                 pbar.update(curr_time - pbar.n)
         pbar.close()
 
@@ -486,6 +494,9 @@ class MAB:
             [max_reward[t * len(max_reward) // self.T] for t in range(self.T)]
         )
         regret = max_reward_per_turn - np.array(reward_per_turn)
+        print(
+            f"Total Number of Episodes: {curr_ep}. Total Number with Multiple Solutions: {mult_sols_count}"
+        )
         return regret, transition_intervals
 
 
@@ -567,12 +578,13 @@ class MAB_INDV:
         total_reward = 0
         for loc in locations:
             arm = self.G.nodes[loc]["arm"].Arms[locations[loc][0].id]
-            reward = arm.pull()
+            reward = arm.pull(curr_time, self.T)
             for agent in locations[loc]:
                 agent.sample(reward)
 
             total_reward += (
-                arm.interaction.function(len(locations[loc])) * arm.true_mean
+                arm.interaction.function(len(locations[loc]))
+                * arm.true_mean[curr_time * arm.breakpoints // self.T]
             )
 
         return total_reward

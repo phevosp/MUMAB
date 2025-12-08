@@ -9,6 +9,7 @@ def optimal_distribution(
     debug=False,
     output_dir=None,
     breakpoint=None,
+    find_multiple_solutions=False,
 ):
     # Gurobi non-convex optimization finds convergence between upper and lower bound.
     # Default gap is 1e-4, this hsould be sufficient for finding the optimal allocation
@@ -27,6 +28,12 @@ def optimal_distribution(
     output_flag = 1 if debug else 0
     m.setParam("OutputFlag", output_flag)
     m.setParam("NumericFocus", 0)
+
+    if find_multiple_solutions:
+        m.setParam("PoolSolutions", 2)
+        m.setParam("PoolSearchMode", 2)
+        m.setParam("PoolGap", 0.0)
+
     store_vars = {}
     for arm in arm_list:
         store_vars = arm.interaction.add_constraints(m, store_vars)
@@ -42,7 +49,7 @@ def optimal_distribution(
         )
     if theoretical:
         assert (
-            breakpoint
+            breakpoint is not None
         ), "breakpoint must be provided for theoretical optimal distribution"
         m.setObjective(
             sum(
@@ -55,6 +62,7 @@ def optimal_distribution(
         )
 
     m.optimize()
+    has_multiple_solutions = m.SolCount > 1 if find_multiple_solutions else False
 
     # Print model.lp
     model_name = "model_minimize" if minimize else "model_maximize"
@@ -67,7 +75,7 @@ def optimal_distribution(
         m.write(f"{output_dir}{model_name}.lp")
 
     store_values = m.getAttr("X", store_vars)
-    return store_values, m.getObjective().getValue()
+    return store_values, m.getObjective().getValue(), has_multiple_solutions
 
 
 def compare_dist(optimal, allocations):
