@@ -97,20 +97,53 @@ class Arm:
             self.total_reward = sum(self.rewards[start_time:time])
 
             # Calculate mean and confidence radius
-            self.estimated_mean = self.total_reward / self.num_samples
-            self.conf_radius = np.sqrt(2 * np.log(min(sw, time)) / self.num_samples)
+            self.estimated_mean = (
+                self.total_reward / self.num_samples if self.num_samples > 0 else 0
+            )
+            self.conf_radius = (
+                np.sqrt(2 * np.log(1 / (1 - df)) / self.num_samples)
+                if self.num_samples > 0
+                else 1000000000000
+            )
 
         # For discount factor, weight recent samples more
         elif df:
             # Get statistics
-            discounts = [df ** (time - t - 1) for t in range(time)]
-            self.num_pulls = sum(p * d for p, d in zip(self.pulls[:time], discounts))
-            self.num_samples = sum(
-                s * d for s, d in zip(self.samples[:time], discounts)
-            )
-            self.total_reward = sum(
-                r * d for r, d in zip(self.rewards[:time], discounts)
-            )
+            if self.total_reward:
+                discounts = [df ** (time - t - 1) for t in range(time - ep_len, time)]
+
+                self.total_reward *= df ** (ep_len)
+                self.total_reward += sum(
+                    p * d
+                    for p, d in zip(
+                        self.rewards[time - ep_len - 1 : time - 1], discounts
+                    )
+                )
+
+                self.num_pulls *= df ** (ep_len)
+                self.num_pulls += sum(
+                    p * d
+                    for p, d in zip(self.pulls[time - ep_len - 1 : time - 1], discounts)
+                )
+
+                self.num_samples *= df ** (ep_len)
+                self.num_samples += sum(
+                    s * d
+                    for s, d in zip(
+                        self.samples[time - ep_len - 1 : time - 1], discounts
+                    )
+                )
+            else:
+                discounts = [df ** (time - t - 1) for t in range(time)]
+                self.num_pulls = sum(
+                    p * d for p, d in zip(self.pulls[:time], discounts)
+                )
+                self.num_samples = sum(
+                    s * d for s, d in zip(self.samples[:time], discounts)
+                )
+                self.total_reward = sum(
+                    r * d for r, d in zip(self.rewards[:time], discounts)
+                )
 
             # Calculate mean and confidence radius
             self.estimated_mean = self.total_reward / self.num_samples
@@ -160,6 +193,9 @@ class Arm:
         self.conf_radius = 0
         self.ucb = 0
         self.num_samples = 0
+        self.rewards = [0 for _ in range(len(self.rewards))]
+        self.samples = [0 for _ in range(len(self.samples))]
+        self.pulls = [0 for _ in range(len(self.pulls))]
 
     def set_episode_pulls_req(self, episode_pulls_req):
         self.episode_pulls = 0

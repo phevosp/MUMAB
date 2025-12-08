@@ -24,7 +24,7 @@ alg_names = {
     "indv": "Indv-Multi-G-UCB",
     "UCRL2": "Multi-UCRL2",
     "max": "Max-Multi-G-UCB",
-    "comb": "Comb-UCB",
+    "comb": "Comb-UCB1",
     "discount": "D-Multi-G-UCB",
     "sliding": "SW-Multi-G-UCB",
 }
@@ -181,10 +181,10 @@ def initialize_graph(params):
         "sbm": lambda s: nx.stochastic_block_model(
             [params.K // 4, params.K // 4, params.K // 4, params.K // 4],
             [
-                [0.05, 0.01, 0.01, 0.01],  #
-                [0.01, 0.05, 0.01, 0.01],
-                [0.01, 0.01, 0.05, 0.01],
-                [0.01, 0.01, 0.01, 0.05],
+                [0.2, 0.05, 0.01, 0.05],  #
+                [0.05, 0.2, 0.01, 0.05],
+                [0.01, 0.01, 0.2, 0.01],
+                [0.05, 0.05, 0.01, 0.2],
             ],
             seed=s,
         ),
@@ -195,7 +195,7 @@ def initialize_graph(params):
 
     G = graph_generators[params.graph_type](0)
     tries = 0
-    while not nx.is_connected(G) and tries < 10:
+    while not nx.is_connected(G) and tries < 25:
         G = graph_generators[params.graph_type](tries + 1)
         tries += 1
     assert nx.is_connected(G)

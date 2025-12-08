@@ -173,7 +173,7 @@ class MAB:
         for agent in agents:
             allocation.append(agent.current_node["arm"].id)
 
-        return curr_time, rew_per_turn, 0, allocation
+        return curr_time, rew_per_turn, 0, allocation, False
 
     def _episode_pulls_req_met(self, sampled_nodes):
         """
@@ -589,7 +589,7 @@ class MAB_INDV:
 
         return total_reward
 
-    def run(self, max_reward_per_turn):
+    def run(self, max_reward: list):
         # Reset arms
         for i in self.G:
             self.G.nodes[i]["arm"].reset()
@@ -619,10 +619,15 @@ class MAB_INDV:
         curr_time = 0
         curr_ep = 0
 
-        regret = []
+        reward_per_turn = []
         for t in tqdm(range(self.T)):
             reward = self._time_step(agents, t)
-            regret.append(max_reward_per_turn - reward)
+            reward_per_turn.append(reward)
+
+        max_reward_per_turn = np.array(
+            [max_reward[t * len(max_reward) // self.T] for t in range(self.T)]
+        )
+        regret = max_reward_per_turn - np.array(reward_per_turn)
         return regret, None
 
 
