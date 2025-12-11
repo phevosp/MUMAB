@@ -168,3 +168,6 @@ v2/old_outputs/
 *.pyc
 
 output/
+
+# Pycache
+.__pycache__/
